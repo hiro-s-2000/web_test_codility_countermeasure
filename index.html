@@ -274,7 +274,7 @@
     }
     .filter-tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 4px;
     }
     .filter-tab {
@@ -1105,6 +1105,8 @@
     </div>
     <div class="topbar-right">
       <a class="icon-btn" href="./reading-lab.html" title="問題文を読んでから、コードを書いてサンプルを実行する">読解練習</a>
+      <a class="icon-btn" href="./timed-auto.html" title="問題文を表示し、制限時間内にコードを入力してサンプルを実行する">制限時間で解く</a>
+      <a class="icon-btn" href="./result-review.html" title="解いたサンプルの合格と使った時間を見る">結果を分析</a>
       <!-- 200-Minute Exam Timer -->
       <div class="timer-box" title="本番模試用 200分タイマー">
         <span>⏱️</span>
@@ -1129,6 +1131,7 @@
           <button class="filter-tab" data-cat="guide">📚 対策書</button>
           <button class="filter-tab" data-cat="exam">📝 模試</button>
           <button class="filter-tab" data-cat="kotlin">💻 Kotlin</button>
+          <button class="filter-tab" data-cat="lesson" title="Codility公式のlessonの問題と、Kotlinの解答">🎓 公式</button>
         </div>
         <div class="accordion-toolbar">
           <span title="右端の境界線をドラッグして横幅を調整できます">↔ 右端ドラッグで幅調整</span>
@@ -1205,7 +1208,11 @@
           let category;
           let categoryLabel;
           let type;
-          if (path.startsWith("模擬試験_問題リスト/")) {
+          if (path.startsWith("公式Lesson/")) {
+            category = "lesson";
+            categoryLabel = "🎓 公式のlessonの問題";
+            type = "markdown";
+          } else if (path.startsWith("模擬試験_問題リスト/")) {
             category = "exam";
             categoryLabel = "📝 模擬試験・解答バンク";
             type = "markdown";
@@ -1251,7 +1258,8 @@
       const openCategories = {
         "📚 対策ガイド・1次面接": false,
         "📝 模擬試験・解答バンク": false,
-        "💻 Kotlin 実装コード": false
+        "💻 Kotlin 実装コード": false,
+        "🎓 公式のlessonの問題": false
       };
       const openSubDocs = {};
 
@@ -1829,7 +1837,10 @@
         const groups = {};
         const studyOrder = currentCat === "all" && !searchQuery.trim();
         if (studyOrder) {
-          groups["上からこの順に進める"] = filtered.slice();
+          // The official lessons sit outside the numbered study order, in their own section.
+          groups["上からこの順に進める"] = filtered.filter((item) => item.category !== "lesson");
+          const lessonItems = filtered.filter((item) => item.category === "lesson");
+          if (lessonItems.length) groups["🎓 公式のlessonの問題"] = lessonItems;
         } else {
           filtered.forEach((item) => {
             if (!groups[item.categoryLabel]) groups[item.categoryLabel] = [];

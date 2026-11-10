@@ -482,7 +482,7 @@
   root.ReadingLab = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 
-  if (typeof document === "undefined") return;
+  if (typeof document === "undefined" || root.SKIP_READING_LAB_BOOT) return;
 
   var STORE = "reading-lab-v2";
   var stepTimer = 0;
