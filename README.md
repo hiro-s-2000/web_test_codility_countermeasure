@@ -3,9 +3,11 @@
 🌐 **Webポータル（GitHub Pages）を開く:**
 👉 **[https://hiro-s-2000.github.io/web_test_codility_countermeasure/](https://hiro-s-2000.github.io/web_test_codility_countermeasure/)**
 
-🧪 **問題文の読解練習:**
-👉 **[reading-lab.html](https://hiro-s-2000.github.io/web_test_codility_countermeasure/reading-lab.html)**
-Codility の画面と同じ並びで、問題文を先に読み、右のエディタに Kotlin を書いてサンプルを実行できます。行番号で止めて、その時点の変数を見られます。公式問題文の転載ではありません。実行はブラウザの中の Kotlin の一部だけで、Int は 32 ビットで一周します。class や data class は動きません。書けないときは、各問題の「解答コード」欄で考え方と解答を見て、エディタに入れて実行できます。左上の「読解練習」からも開けます。隣の「制限時間で解く」は、同じ問題文を出したうえで、制限時間内に解答を一文字ずつ入力し、行番号と変数を見ながらデバッグします。各サンプルの出力説明を確認し、問題がなければ次の問題に進みます。隣の「結果を分析」は、その実行で残したサンプルの合格数と使った時間を、結果レポートの並びに出します。
+🧪 **制限時間で解く・読解練習:**
+👉 **[timed-auto.html](https://hiro-s-2000.github.io/web_test_codility_countermeasure/timed-auto.html)**
+問題を選び、画面下部の読解問題に回答します。複数の問題に回答してから「提出する」を押すと、結果分析画面で正誤・選んだ答え・正解を確認できます。回答途中の内容と提出結果は、このブラウザに保存されます。回答した問題の未回答の設問は不正解として数えます。
+
+同じ画面で、解答コードの自動入力とサンプル実行の様子も確認できます。これは自動実行であり、読解問題の採点とは別です。実行はブラウザ内の Kotlin の一部だけに対応し、class や data class は実行できません。問題文は公式問題文の転載ではありません。
 
 🎓 **公式のlessonの問題:**
 Codility公式Lessonの問題を Kotlin で解いた解答を、左メニューの「🎓 公式のlessonの問題」（絞り込みボタン「🎓 公式」）に置いています。Lesson 1 Iterations から Lesson 17 Dynamic programming までの全47問です。解答はすべて本物の Kotlin コンパイラでコンパイルし、愚直解とのランダム比較と最大サイズの性能テストで確かめています。各問題の要約・解答・考え方は、その下のサブメニューから開けます。原本は `公式Lesson/` フォルダです。

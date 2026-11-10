@@ -14,6 +14,7 @@
   var tabSummary = document.getElementById("tabSummary");
   var tabTime = document.getElementById("tabTime");
   var screenWhen = document.getElementById("screenWhen");
+  var scoreNote = document.getElementById("scoreNote");
   var selected = 0;
   var report = null;
 
@@ -37,6 +38,7 @@
   }
 
   function spent(ms) {
+    if (ms == null) return "—";
     var seconds = Math.max(1, Math.round((ms || 0) / 1000));
     if (seconds < 60) return seconds + " 秒";
     return Math.round(seconds / 60) + " 分";
@@ -51,6 +53,9 @@
   }
 
   function scoreOf(item) {
+    if (item.reading && item.reading.length) {
+      return Math.round(item.reading.filter(function (row) { return row.ok; }).length * 100 / item.reading.length);
+    }
     var tests = item.tests || [];
     if (!tests.length) return null;
     var ok = tests.filter(function (row) { return row.ok; }).length;
@@ -62,6 +67,9 @@
   }
 
   function totalScore(items) {
+    var reading = [];
+    items.forEach(function (item) { reading = reading.concat(item.reading || []); });
+    if (reading.length) return Math.round(reading.filter(function (row) { return row.ok; }).length * 100 / reading.length);
     var all = 0;
     var ok = 0;
     items.forEach(function (item) {
@@ -74,6 +82,7 @@
   }
 
   function warn(item) {
+    if (item.reading && item.reading.length) return item.reading.some(function (row) { return !row.ok; });
     return item.result !== "時間内に完了";
   }
 
@@ -130,16 +139,30 @@
       meta.appendChild(block);
     });
     insight.appendChild(meta);
+    var reading = item.reading || [];
+    if (reading.length) {
+      insight.appendChild(el("h3", null, "読解問題の回答"));
+      reading.forEach(function (row, index) {
+        var block = el("div", "reading-result");
+        block.appendChild(el("strong", null, (index + 1) + ". " + row.prompt));
+        var outcome = row.selected == null ? "未回答" : (row.ok ? "正解" : "不正解");
+        block.appendChild(el("p", row.ok ? "ok" : "bad", outcome + " — 回答: " + (row.selected == null ? "未回答" : row.selected)));
+        block.appendChild(el("p", null, "正解: " + row.answer));
+        if (row.explanation) block.appendChild(el("p", "note", row.explanation));
+        insight.appendChild(block);
+      });
+    }
     var tests = item.tests || [];
+    var hasAutomatic = item.automaticResult != null || !Array.isArray(item.reading);
     var stats = el("div", "stats");
     var correct = el("div");
-    correct.appendChild(el("span", "note", "正しさ"));
+    correct.appendChild(el("span", "note", reading.length ? "読解の正解数" : "サンプルの合格数"));
     var count = el("div");
-    count.appendChild(el("b", null, String(passedCount(item))));
-    count.appendChild(document.createTextNode(" / " + tests.length + " サンプルが合格"));
+    count.appendChild(el("b", null, String(reading.length ? reading.filter(function (row) { return row.ok; }).length : passedCount(item))));
+    count.appendChild(document.createTextNode(" / " + (reading.length ? reading.length + " 問" : tests.length + " サンプル")));
     correct.appendChild(count);
     var point = el("div");
-    point.appendChild(el("span", "note", "問題の得点"));
+    point.appendChild(el("span", "note", reading.length ? "読解の正解率" : "サンプルの合格率"));
     var value = scoreOf(item);
     point.appendChild(el("b", null, value == null ? "—" : value + "%"));
     stats.appendChild(correct);
@@ -175,10 +198,10 @@
     paintHead();
     group.appendChild(head);
     group.appendChild(body);
-    insight.appendChild(group);
+    if (hasAutomatic) insight.appendChild(group);
 
     var switcher = el("div", "view-switch");
-    var codeBtn = el("button", "is-on", "提出したコード");
+    var codeBtn = el("button", "is-on", "自動実行コード");
     var textBtn = el("button", null, "問題文");
     codeBtn.type = "button";
     textBtn.type = "button";
@@ -187,7 +210,7 @@
       codeBtn.className = "is-on";
       textBtn.className = "";
       view.textContent = "";
-      var code = answers[item.id] && answers[item.id].code;
+      var code = item.automaticCode || (item.automaticResult == null && !item.reading && answers[item.id] && answers[item.id].code);
       view.appendChild(el("pre", null, code || "コードはありません。"));
     }
     function showText() {
@@ -204,9 +227,10 @@
     textBtn.addEventListener("click", showText);
     switcher.appendChild(codeBtn);
     switcher.appendChild(textBtn);
+    if (!hasAutomatic) codeBtn.disabled = true;
     insight.appendChild(switcher);
     insight.appendChild(view);
-    showCode();
+    if (hasAutomatic) showCode(); else showText();
   }
 
   function renderTable(items) {
@@ -217,7 +241,7 @@
       tr.className = "task" + (warn(item) ? " is-warn" : "") + (index === selected ? " is-on" : "");
       var name = document.createElement("td");
       name.appendChild(el("strong", null, task ? task.title : item.id));
-      name.appendChild(el("span", "lang", "Kotlin"));
+      name.appendChild(el("span", "lang", item.reading && item.reading.length ? "読解" : "Kotlin（自動実行）"));
       tr.appendChild(name);
       tr.appendChild(el("td", null, spent(item.elapsedMs)));
       var score = scoreOf(item);
@@ -247,6 +271,10 @@
     var hash = /^#task-(\d+)$/.exec(location.hash || "");
     if (hash) selected = Math.max(0, Math.min(items.length - 1, Number(hash[1])));
     if (!items.length) selected = 0;
+    var hasReading = items.some(function (item) { return item.reading && item.reading.length; });
+    scoreNote.textContent = hasReading
+      ? "読解問題の正解率です。未回答の設問は不正解として数えます。自動実行のサンプル結果は各問題の詳細に表示します。"
+      : "得点は、自動実行したサンプルの合格率です。隠しテストや計算量の採点はありません。";
     drawRing(totalScore(items));
     renderTable(items);
     renderTimeline(items);

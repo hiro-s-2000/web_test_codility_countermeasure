@@ -98,6 +98,8 @@
     }
     .case { padding: 0 8px 8px 28px; color: var(--muted); }
     .case p { margin: 4px 0; }
+    .reading-result { padding: 10px 0; border-top: 1px solid var(--line); }
+    .reading-result p { margin: 4px 0; }
     .ok { color: var(--ok); }
     .bad { color: var(--bad); }
     pre {
@@ -141,7 +143,6 @@
   <header>
     <a class="nav" href="./index.html">ポータルへ戻る</a>
     <a class="nav" href="./timed-auto.html">制限時間で解く</a>
-    <a class="nav" href="./reading-lab.html">読解練習</a>
   </header>
   <main>
     <p class="kicker">結果レポート</p>
@@ -161,12 +162,12 @@
             </thead>
             <tbody id="taskRows"></tbody>
           </table>
-          <p class="note" id="emptyNote" hidden>まだ結果がありません。制限時間で解くを実行すると、ここに出ます。</p>
+          <p class="note" id="emptyNote" hidden>まだ結果がありません。制限時間で解く画面で回答を提出すると、ここに出ます。</p>
         </section>
         <section class="card score-card">
           <h2>合計点</h2>
           <div class="ring" id="ring" aria-hidden="true"></div>
-          <p class="note">得点は、実行したサンプルの合格数です。隠しテストや計算量の採点はありません。</p>
+          <p class="note" id="scoreNote">読解問題の正解率です。未回答の設問は不正解として数えます。</p>
         </section>
       </div>
       <section class="card" id="insight" hidden></section>

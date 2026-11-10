@@ -72,6 +72,13 @@
     .clock.is-over { color: var(--bad); }
     .clock.is-ok { color: var(--green); }
     .clock.is-held { color: #e3b341; }
+    .reading-section { grid-column: 1 / -1; padding: 16px; border-top: 1px solid var(--line); background: var(--panel); }
+    .reading-section h2 { margin: 0 0 8px; }
+    .reading-question { margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+    .reading-question legend { padding: 0 4px; }
+    .reading-choice { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; line-height: 1.5; cursor: pointer; }
+    .reading-choice input { margin-top: 4px; flex: 0 0 auto; }
+    .submit-status { color: var(--bad); font-size: 13px; }
     .clocks { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
     .task-clock, .exam-timer { display: flex; align-items: center; gap: 6px; }
     .clock-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
@@ -83,6 +90,8 @@
       min-height: 0;
       display: grid;
       grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.4fr);
+      grid-template-rows: minmax(400px, 1fr) auto;
+      overflow-y: auto;
     }
     .statement, .work { min-height: 0; overflow: auto; }
     .statement { border-right: 1px solid var(--line); background: #2a2a2a; padding: 8px 18px 32px; }
@@ -319,7 +328,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; vertical-align: top; }
     @media (max-width: 820px) {
-      #app { display: block; }
+      #app { display: block; overflow: visible; }
       .statement, .work { overflow: visible; }
       .statement { border-right: 0; border-bottom: 1px solid var(--line); }
       body { height: auto; }
@@ -345,7 +354,6 @@
   <header class="exam-top">
     <div class="top-left">
       <a class="nav" href="./index.html">ポータルへ戻る</a>
-      <a class="nav" href="./reading-lab.html">読解練習</a>
       <a class="nav" href="./result-review.html">結果を分析</a>
     </div>
     <div class="clocks">
@@ -359,7 +367,8 @@
       </div>
     </div>
     <div class="top-right">
-      <span class="submit-look" title="この練習ページは答案を提出しません">提出はしません</span>
+      <button type="button" class="submit-look" id="submitAnswers">提出する</button>
+      <span class="submit-status" id="submitStatus" role="status"></span>
     </div>
   </header>
   <main id="app">
@@ -441,12 +450,20 @@
         </div>
       </div>
     </section>
+    <section class="reading-section" id="readingSection" aria-labelledby="readingTitle">
+      <h2 id="readingTitle">読解問題</h2>
+      <p>問題ごとに選択し、最後に「提出する」を押すと結果を確認できます。</p>
+      <div id="readingQuestions"></div>
+      <button type="button" class="submit-look" id="submitAnswersBottom">提出する</button>
+      <span class="submit-status" id="submitStatusBottom" role="status"></span>
+    </section>
   </main>
   <script src="./kotlite.js"></script>
   <script src="./reading-lab-extra.js"></script>
   <script src="./reading-lab-answers.js"></script>
   <script>window.SKIP_READING_LAB_BOOT = true;</script>
   <script src="./reading-lab.js"></script>
+  <script src="./practice-report.js"></script>
   <script src="./timed-auto.js"></script>
   <script src="./pull-refresh.js"></script>
 </body>

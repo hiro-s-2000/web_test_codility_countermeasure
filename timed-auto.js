@@ -71,11 +71,29 @@
   var solveOne = document.getElementById("solveOne");
   var solveAll = document.getElementById("solveAll");
   var stopBtn = document.getElementById("stopBtn");
+  var submitAnswers = document.getElementById("submitAnswers");
+  var submitAnswersBottom = document.getElementById("submitAnswersBottom");
+  var submitStatus = document.getElementById("submitStatus");
+  var submitStatusBottom = document.getElementById("submitStatusBottom");
+  var readingQuestions = document.getElementById("readingQuestions");
+  var DRAFT_KEY = "timed-practice-reading-draft-v1";
+  var REPORT_KEY = "timed-auto-report-v1";
+  var AUTO_REPORT_KEY = "timed-auto-draft-v1";
+  var readingDraft;
+  try { readingDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (error) { readingDraft = null; }
+  if (!readingDraft || !readingDraft.selections || typeof readingDraft.selections !== "object") {
+    readingDraft = { startedAt: new Date().toISOString(), selections: {} };
+  }
   var keyHint = document.getElementById("keyHint");
   var keyName = document.getElementById("keyName");
   var keyNote = document.getElementById("keyNote");
   var session = 0;
   var records = [];
+
+  function showSubmitStatus(message) {
+    submitStatus.textContent = message;
+    submitStatusBottom.textContent = message;
+  }
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -147,6 +165,42 @@
       });
       statement.appendChild(list);
     }
+    renderReadingQuestions(task);
+  }
+
+  function renderReadingQuestions(task) {
+    readingQuestions.textContent = "";
+    var chosen = readingDraft.selections[task.id] || {};
+    if (!(task.reading || []).length) {
+      readingQuestions.appendChild(el("p", "muted", "この問題には選択問題がありません。"));
+      return;
+    }
+    (task.reading || []).forEach(function (question, index) {
+      var field = el("fieldset", "reading-question");
+      field.appendChild(el("legend", null, (index + 1) + ". " + question.prompt));
+      question.choices.forEach(function (choice) {
+        var label = el("label", "reading-choice");
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = "reading-" + index;
+        input.value = choice.id;
+        input.checked = chosen[question.id] === choice.id;
+        input.addEventListener("change", function () {
+          if (!readingDraft.selections[task.id]) readingDraft.selections[task.id] = {};
+          readingDraft.selections[task.id][question.id] = choice.id;
+          try {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(readingDraft));
+            showSubmitStatus("");
+          } catch (error) {
+            showSubmitStatus("回答を保存できません。ページを閉じずに提出してください。");
+          }
+        });
+        label.appendChild(input);
+        label.appendChild(el("span", null, choice.text));
+        field.appendChild(label);
+      });
+      readingQuestions.appendChild(field);
+    });
   }
 
   function log(text) {
@@ -158,6 +212,8 @@
     solveOne.disabled = busy;
     solveAll.disabled = busy;
     stopBtn.disabled = !busy;
+    submitAnswers.disabled = busy;
+    submitAnswersBottom.disabled = busy;
   }
 
   function formatClock(ms) {
@@ -751,10 +807,8 @@
     summary.appendChild(table);
   }
 
-  var REPORT_KEY = "timed-auto-report-v1";
-
   function persistReport(data) {
-    try { localStorage.setItem(REPORT_KEY, JSON.stringify(data)); } catch (error) { return; }
+    try { localStorage.setItem(AUTO_REPORT_KEY, JSON.stringify(data)); } catch (error) { return; }
   }
 
   function beginReport() {
@@ -780,6 +834,7 @@
       id: task.id,
       result: result,
       elapsedMs: elapsedMs,
+      automaticCode: codeBox.value,
       tests: (tests || []).map(function (row) {
         return {
           name: String(row.name),
@@ -885,6 +940,28 @@
   }
 
   var sessionReport = null;
+
+  function submitPractice() {
+    var automatic = sessionReport;
+    if (!automatic) {
+      try { automatic = JSON.parse(localStorage.getItem(AUTO_REPORT_KEY) || "null"); } catch (error) { automatic = null; }
+    }
+    var report = root.PracticeReport.buildReport(tasks, readingDraft.selections, automatic, readingDraft.startedAt);
+    if (!report.tasks.length) {
+      showSubmitStatus("選択問題に回答するか、自動実行を終えてから提出してください。");
+      return;
+    }
+    try {
+      localStorage.setItem(REPORT_KEY, JSON.stringify(report));
+    } catch (error) {
+      showSubmitStatus("結果を保存できません。ブラウザの保存設定を確認してください。");
+      return;
+    }
+    try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(AUTO_REPORT_KEY); } catch (error) { /* The submitted result is already saved. */ }
+    root.location.href = "./result-review.html";
+  }
+  submitAnswers.addEventListener("click", submitPractice);
+  submitAnswersBottom.addEventListener("click", submitPractice);
 
   async function runQueue(list) {
     var token = ++session;
