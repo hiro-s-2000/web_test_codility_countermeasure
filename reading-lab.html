@@ -113,6 +113,9 @@
     .run-bar .run-btn { width: auto; }
     .vars { margin: 8px 0; padding-left: 1.2em; }
     .text-btn { width: auto; margin-top: 10px; }
+    .answer summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+    .answer-notes { margin: 6px 0 10px; padding-left: 1.2em; }
+    .answer-code { overflow-x: auto; white-space: pre; }
     button:disabled { opacity: 0.55; cursor: default; }
     .feedback { padding: 8px 10px; border-radius: 6px; }
     .feedback.is-ok, .ok-note, .report-line.is-ok { color: var(--green); }
@@ -208,6 +211,7 @@
   <main id="app"></main>
   <script src="./kotlite.js"></script>
   <script src="./reading-lab-extra.js"></script>
+  <script src="./reading-lab-answers.js"></script>
   <script src="./reading-lab.js"></script>
 </body>
 </html>

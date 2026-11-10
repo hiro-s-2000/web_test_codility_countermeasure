@@ -381,6 +381,10 @@
   (root.LAB_EXTRA || []).forEach(function (raw) {
     tasks.push(normalizeTask(raw));
   });
+  tasks.forEach(function (task) {
+    var found = (root.LAB_ANSWERS || {})[task.id];
+    task.answer = found && found.code ? found : null;
+  });
 
   function normalizeAnswer(value) {
     return String(value == null ? "" : value)
@@ -484,7 +488,7 @@
   var stepTimer = 0;
 
   function emptyState() {
-    return { taskId: tasks[0].id, lang: "ja", theme: "dark", solved: {}, code: {}, imagine: {}, breaks: {} };
+    return { taskId: tasks[0].id, lang: "ja", theme: "dark", solved: {}, code: {}, imagine: {}, breaks: {}, answerOpen: {} };
   }
 
   function loadState() {
@@ -501,6 +505,7 @@
       if (data.code && typeof data.code === "object") state.code = data.code;
       if (data.imagine && typeof data.imagine === "object") state.imagine = data.imagine;
       if (data.breaks && typeof data.breaks === "object") state.breaks = data.breaks;
+      if (data.answerOpen && typeof data.answerOpen === "object") state.answerOpen = data.answerOpen;
     } catch (e) {
       return emptyState();
     }
@@ -819,6 +824,65 @@
       return card;
     }
 
+    function renderAnswer(task) {
+      var card = el("section", "card answer-card");
+      card.appendChild(el("h2", null, "解答コード"));
+      if (!task.answer) {
+        card.appendChild(el("p", "lead", "この問題の解答コードは、まだ用意していません。"));
+        return card;
+      }
+      var done = readingDone(state, task);
+      card.appendChild(el("p", "lead", "書けないときに開きます。考え方を読んでから、自分の手で打ち直すと身につきます。"));
+      var box = document.createElement("details");
+      box.className = "answer";
+      box.open = !!state.answerOpen[task.id];
+      box.addEventListener("toggle", function () {
+        state.answerOpen[task.id] = box.open;
+        persist();
+      });
+      box.appendChild(el("summary", null, "解答コードと考え方を開く"));
+      box.appendChild(el("h3", null, "考え方"));
+      var notes = el("ul", "answer-notes");
+      (task.answer.notes || []).forEach(function (line) {
+        notes.appendChild(el("li", null, line));
+      });
+      box.appendChild(notes);
+      box.appendChild(el("h3", null, "コード"));
+      box.appendChild(el("pre", "skeleton answer-code", task.answer.code));
+      var bar = el("div", "run-bar");
+      var put = el("button", "run-btn", "エディタに入れる");
+      put.type = "button";
+      put.disabled = !done;
+      put.addEventListener("click", function () {
+        var now = currentCode(task);
+        if (now !== task.starter && now !== task.answer.code &&
+            !window.confirm("いまエディタにあるコードを、解答コードで置き換えます。")) return;
+        state.code[task.id] = task.answer.code;
+        debugSession = null;
+        runView = null;
+        persist();
+        render();
+      });
+      var copy = el("button", "run-btn", "コピー");
+      copy.type = "button";
+      copy.addEventListener("click", function () {
+        var text = task.answer.code;
+        function said(msg) { copy.textContent = msg; window.setTimeout(function () { copy.textContent = "コピー"; }, 1500); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () { said("コピーしました"); }, function () { said("コピーできません"); });
+        } else {
+          said("コピーできません");
+        }
+      });
+      bar.appendChild(put);
+      bar.appendChild(copy);
+      box.appendChild(bar);
+      if (!done) box.appendChild(el("p", "wait-note", "エディタに入れるのは、読解の 4 問のあとです。コードを読むことは、いつでもできます。"));
+      if (!task.runnable) box.appendChild(el("p", "wait-note", "この問題は class を使うので、このページでは実行できません。読んで、手で打つ練習に使ってください。"));
+      card.appendChild(box);
+      return card;
+    }
+
     function shown(value) {
       if (typeof value === "string") return JSON.stringify(value);
       if (Array.isArray(value)) return JSON.stringify(value);
@@ -993,6 +1057,7 @@
       var readingCard = renderReading(task);
       work.appendChild(readingCard);
       work.appendChild(renderEditor(task));
+      work.appendChild(renderAnswer(task));
       work.appendChild(renderRun(task));
       app.appendChild(statement);
       app.appendChild(work);

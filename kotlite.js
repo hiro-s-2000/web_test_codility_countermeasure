@@ -1171,12 +1171,17 @@
       if (name === "isEmpty") return B(obj.v.length === 0);
       if (name === "isNotEmpty") return B(obj.v.length !== 0);
     }
+    if (name === "toInt" && obj.t === "s") {
+      if (!/^[-+]?\d+$/.test(obj.v) || Number(obj.v) > 2147483647 || Number(obj.v) < -2147483648) throw fail(ctx.line, "NumberFormatException: \"" + obj.v + "\" は Int にできません");
+      return I(Number(obj.v));
+    }
     if (name === "toInt") return I(num(obj));
     if (name === "toLong") return L(obj.t === "s" || obj.t === "c" ? Number(obj.v) : num(obj));
     if (name === "toString") return S(asText(obj));
     if (name === "toIntOrNull" || name === "toLongOrNull") {
       if (obj.t !== "s" && obj.t !== "c") return N();
-      if (!/^-?\d+$/.test(obj.v)) return N();
+      if (!/^[-+]?\d+$/.test(obj.v)) return N();
+      if (name === "toIntOrNull" && (Number(obj.v) > 2147483647 || Number(obj.v) < -2147483648)) return N();
       return name === "toLong" || name === "toLongOrNull" ? L(Number(obj.v)) : I(Number(obj.v));
     }
     if (name === "isEmpty") return B(lenOf(obj) === 0);
