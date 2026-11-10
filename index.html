@@ -1040,8 +1040,12 @@
         overscroll-behavior: contain;
       }
       .content-wrapper {
-        padding: 14px 14px 28px;
+        padding: 1px 14px 28px;
       }
+      .doc-meta-bar { padding-top: 0; }
+      .doc-badge { cursor: pointer; }
+      .doc-badge.dismissed { display: none; }
+      .doc-meta-bar:has(.doc-badge.dismissed):has(.doc-actions:empty) { display: none; }
       .markdown-body { font-size: 15.5px; line-height: 1.75; }
       .markdown-body h1 { font-size: 1.42em; }
       .markdown-body h2 { font-size: 1.22em; }
@@ -1080,13 +1084,11 @@
       .nav-card { min-width: 0; padding: 8px 10px; }
       .nav-card-label { font-size: 10.5px; }
       .nav-card-title {
-        overflow-wrap: anywhere;
         font-size: 12.5px;
         line-height: 1.35;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
+        white-space: nowrap;
         overflow: hidden;
+        text-overflow: ellipsis;
       }
       .brand-badge { display: none; }
     }
@@ -1306,6 +1308,18 @@
       const contentWrapperEl = document.getElementById("contentWrapper");
       const sidebarEl = document.getElementById("sidebar");
       const sidebarResizerEl = document.getElementById("sidebarResizer");
+
+      function dismissMobileDocBadge() {
+        if (window.innerWidth > 820) return;
+        docBadgeEl.classList.add("dismissed");
+      }
+      docBadgeEl.addEventListener("click", dismissMobileDocBadge);
+      docBadgeEl.addEventListener("keydown", (event) => {
+        if (window.innerWidth <= 820 && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          dismissMobileDocBadge();
+        }
+      });
 
       // Modal elements
       const codeModalBackdrop = document.getElementById("codeModalBackdrop");
@@ -2070,6 +2084,7 @@
           history.pushState({ docId: doc.id, anchor: targetAnchor }, "", "#" + hashVal);
         }
 
+        docBadgeEl.classList.remove("dismissed");
         docBadgeEl.textContent = `${doc.categoryLabel}  /  ${doc.path}`;
         docActionsEl.innerHTML = "";
 
@@ -2409,6 +2424,15 @@
         placeNavFooter();
         const root = document.documentElement;
         const phone = window.innerWidth <= 820;
+        if (phone) {
+          docBadgeEl.setAttribute("role", "button");
+          docBadgeEl.setAttribute("tabindex", "0");
+          docBadgeEl.setAttribute("aria-label", `${docBadgeEl.textContent}。タップして非表示`);
+        } else {
+          docBadgeEl.removeAttribute("role");
+          docBadgeEl.removeAttribute("tabindex");
+          docBadgeEl.removeAttribute("aria-label");
+        }
         const vv = window.visualViewport;
         if (phone && vv) {
           const offsetTop = Math.round(vv.offsetTop);
