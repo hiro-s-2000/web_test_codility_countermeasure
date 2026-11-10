@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown preview</title>
+  <link rel="stylesheet" href="./vendor/github-markdown/github-markdown-dark.min.css" id="gfm-theme" />
+  <link rel="stylesheet" href="./vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="./vendor/highlight/github-dark.min.css" />
+  <script src="./vendor/marked.min.js"></script>
+  <script src="./vendor/highlight/highlight.min.js"></script>
+  <script src="./vendor/highlight/kotlin.min.js"></script>
+  <script src="./vendor/katex/katex.min.js"></script>
+  <script src="./vendor/katex/auto-render.min.js"></script>
+  <script src="./vendor/mermaid.min.js"></script>
+  <script src="./vendor/github-preview.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #0d1117;
+      color: #f0f6fc;
+    }
+    .bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid #30363d;
+      background: #161b22;
+      font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .bar a { color: #2f81f7; text-decoration: none; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 24px 32px 80px; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <strong>Markdown preview</strong>
+    <a id="portalLink" href="./">ポータルで開く</a>
+  </div>
+  <article class="markdown-body wrap" id="doc"></article>
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const mdUrl = params.get("src") || "__MD_URL__";
+      const doc = document.getElementById("doc");
+      if (!mdUrl || mdUrl === "__MD_URL__") {
+        doc.innerHTML = "<p>プレビューする Markdown の場所が指定されていません。</p>";
+        return;
+      }
+      const fileName = decodeURIComponent(mdUrl.split("/").pop().split("?")[0].split("#")[0]);
+      const hashPart = mdUrl.includes("#") ? "::" + encodeURIComponent(decodeURIComponent(mdUrl.split("#").slice(1).join("#"))) : "";
+      const targetPortalUrl = "./#" + encodeURIComponent(fileName) + hashPart;
+      document.title = fileName;
+      document.getElementById("portalLink").href = targetPortalUrl;
+      location.replace(targetPortalUrl);
+      fetch(mdUrl, { cache: "no-cache" })
+        .then(function (res) {
+          if (!res.ok) throw new Error(String(res.status));
+          return res.text();
+        })
+        .then(function (md) {
+          doc.innerHTML = window.GithubPreview.renderMarkdown(md);
+          window.GithubPreview.liftMermaid(doc);
+          doc.querySelectorAll("pre code").forEach(function (codeEl) {
+            if (window.hljs) window.hljs.highlightElement(codeEl);
+          });
+          window.GithubPreview.decorate(doc);
+        })
+        .catch(function () {
+          doc.innerHTML = "<p>この Markdown を読み込めませんでした。</p>";
+        });
+    })();
+  </script>
+</body>
+</html>

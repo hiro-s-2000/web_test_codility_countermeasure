@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Codility コーディング試験 ＆ Kotlin / Android 実践対策ポータル</title>
+  <!-- Local copies so the preview does not depend on a CDN, and does not fall back to a raw code listing. -->
+  <link rel="stylesheet" href="./vendor/github-markdown/github-markdown-dark.min.css" id="gfm-theme" />
+  <link rel="stylesheet" href="./vendor/katex/katex.min.css" />
+  <link rel="stylesheet" href="./vendor/highlight/github-dark.min.css" id="hljs-theme" />
+  <script src="./vendor/marked.min.js"></script>
+  <script src="./vendor/highlight/highlight.min.js"></script>
+  <script src="./vendor/highlight/kotlin.min.js"></script>
+  <script src="./vendor/katex/katex.min.js"></script>
+  <script src="./vendor/katex/auto-render.min.js"></script>
+  <script src="./vendor/mermaid.min.js"></script>
+  <script src="./vendor/github-preview.js"></script>
+  <style>
+    :root {
+      --sidebar-width: 330px;
+    }
+    :root[data-theme="dark"] {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --bg-hover: #292e36;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --border-color: #30363d;
+      --accent: #2f81f7;
+      --accent-soft: rgba(47, 129, 247, 0.15);
+      --green: #3fb950;
+      --orange: #d29922;
+      --code-bg: #161b22;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      --modal-backdrop: rgba(1, 4, 9, 0.78);
+    }
+    :root[data-theme="light"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f6f8fa;
+      --bg-tertiary: #eaeef2;
+      --bg-hover: #dde3ea;
+      --text-primary: #1f2328;
+      --text-secondary: #57606a;
+      --border-color: #d0d7de;
+      --accent: #0969da;
+      --accent-soft: rgba(9, 105, 218, 0.12);
+      --green: #1a7f37;
+      --orange: #9a6700;
+      --code-bg: #f6f8fa;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      --modal-backdrop: rgba(27, 31, 36, 0.55);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    body.resizing-sidebar {
+      user-select: none;
+      cursor: col-resize !important;
+    }
+
+    /* Top Header */
+    .topbar {
+      height: 56px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: background 0.15s;
+    }
+    .menu-btn:hover {
+      background: var(--bg-hover);
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 15.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .brand-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 600;
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    /* Header TOC toggle: same footprint as the ☰ menu button */
+    .toc-header-btn {
+      flex-shrink: 0;
+      margin-left: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 5px;
+      line-height: 19px;
+      white-space: nowrap;
+    }
+    .toc-header-btn[aria-expanded="true"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Exam Timer Widget */
+    .timer-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .timer-display {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--green);
+      min-width: 68px;
+      text-align: center;
+    }
+    .timer-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+    .timer-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    .icon-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12.5px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .icon-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    /* Main Layout */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Left Sidebar (Resizable + Collapsible + Accordion) */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: 200px;
+      max-width: 640px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 20;
+      position: relative;
+      transition: margin-left 0.2s ease;
+    }
+    .sidebar.collapsed {
+      margin-left: calc(var(--sidebar-width) * -1);
+    }
+
+    /* Drag Resizer Handle */
+    .sidebar-resizer {
+      position: absolute;
+      top: 0;
+      right: -4px;
+      bottom: 0;
+      width: 8px;
+      cursor: col-resize;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s;
+    }
+    .sidebar-resizer::after {
+      content: "";
+      width: 2px;
+      height: 36px;
+      border-radius: 2px;
+      background: var(--border-color);
+      transition: background-color 0.15s, height 0.15s;
+    }
+    .sidebar-resizer:hover,
+    .sidebar-resizer.dragging {
+      background-color: rgba(47, 129, 247, 0.22);
+    }
+    .sidebar-resizer:hover::after,
+    .sidebar-resizer.dragging::after {
+      background-color: var(--accent);
+      height: 64px;
+    }
+
+    .sidebar-controls {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+    .filter-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .filter-tab {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 5px;
+      padding: 5px 4px;
+      font-size: 11px;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .filter-tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .accordion-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding-top: 2px;
+    }
+    .accordion-toolbar-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .mini-link-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .mini-link-btn:hover {
+      background: var(--accent-soft);
+    }
+
+    .file-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    /* Category Accordion Styles */
+    .accordion-section {
+      margin-bottom: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      overflow: hidden;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .accordion-section.has-active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(47, 129, 247, 0.25);
+    }
+    .accordion-header {
+      width: 100%;
+      background: var(--bg-tertiary);
+      border: none;
+      color: var(--text-primary);
+      padding: 10px 11px;
+      font-size: 12.4px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .accordion-section.has-active > .accordion-header {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .accordion-header:hover {
+      background: var(--bg-hover);
+    }
+    .accordion-header-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+    }
+    .accordion-header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .accordion-active-dot {
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      padding: 1px 6px;
+      border-radius: 99px;
+      letter-spacing: 0.2px;
+    }
+    .accordion-chevron {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--text-secondary);
+      transition: transform 0.18s ease, color 0.18s ease;
+    }
+    .accordion-section.has-active > .accordion-header .accordion-chevron {
+      color: var(--accent);
+    }
+    .accordion-section.open > .accordion-header .accordion-chevron {
+      transform: rotate(90deg);
+    }
+    .accordion-count {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      padding: 1px 7px;
+      border-radius: 99px;
+    }
+    .accordion-body {
+      display: none;
+      padding: 6px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-primary);
+    }
+    .accordion-section.open > .accordion-body {
+      display: block;
+    }
+
+    /* File Item + Sub-Accordion (Headings / Tasks) */
+    .file-item-wrap {
+      margin-bottom: 4px;
+      border-radius: 6px;
+    }
+    .file-item-wrap.active-wrap {
+      background: rgba(47, 129, 247, 0.05);
+      border-radius: 7px;
+    }
+    .file-item {
+      padding: 8px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12.8px;
+      line-height: 1.38;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      border: 1px solid transparent;
+      border-left: 3px solid transparent;
+      transition: all 0.15s ease;
+    }
+    .file-item:hover {
+      background: var(--bg-hover);
+    }
+    .file-item.active {
+      background: var(--accent-soft);
+      border-color: rgba(47, 129, 247, 0.45);
+      border-left: 4px solid var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    .file-item-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .file-item-title {
+      flex: 1;
+      word-break: break-word;
+    }
+    .active-page-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sub-toggle-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 10.5px;
+      cursor: pointer;
+      flex-shrink: 0;
+      line-height: 1.3;
+      transition: all 0.15s;
+    }
+    .file-item.active .sub-toggle-btn {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--bg-primary);
+    }
+    .sub-toggle-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .file-item-sub {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+    .dialog-pill {
+      font-size: 10px;
+      background: var(--bg-tertiary);
+      color: var(--accent);
+      border: 1px solid var(--border-color);
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .sub-heading-list {
+      display: none;
+      margin: 3px 4px 6px 14px;
+      padding: 4px 0 4px 8px;
+      border-left: 2px solid var(--accent);
+    }
+    .file-item-wrap.sub-open > .sub-heading-list {
+      display: block;
+    }
+    .sub-heading-item {
+      display: block;
+      padding: 4px 8px;
+      font-size: 11.8px;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1.35;
+      margin-bottom: 2px;
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      transition: all 0.12s;
+    }
+    .sub-heading-item:hover {
+      background: var(--bg-hover);
+      color: var(--accent);
+    }
+    .sub-heading-item.active-heading {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      border-left: 4px solid var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(47, 129, 247, 0.45);
+    }
+    .search-snippet {
+      font-size: 11px;
+      color: var(--orange);
+      background: rgba(210, 153, 34, 0.1);
+      padding: 2px 5px;
+      border-radius: 4px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Center Content Area */
+    .content-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 36px 80px;
+      scroll-behavior: smooth;
+    }
+    .content-container {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+    .doc-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .doc-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .doc-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .drawer-scrim {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 130;
+    }
+    .drawer-scrim[hidden] { display: none; }
+
+    /* Markdown Typography */
+    .markdown-body {
+      font-size: 15px;
+      line-height: 1.72;
+      word-wrap: break-word;
+    }
+    .markdown-body a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px dashed rgba(47, 129, 247, 0.45);
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .markdown-body a:hover {
+      background: var(--accent-soft);
+      border-bottom-style: solid;
+      border-radius: 3px;
+    }
+    .markdown-body h1 {
+      font-size: 1.75em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 0;
+    }
+    .markdown-body h2 {
+      font-size: 1.38em;
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid var(--border-color);
+      margin-top: 1.8em;
+      scroll-margin-top: 16px;
+    }
+    .markdown-body h3 {
+      font-size: 1.15em;
+      margin-top: 1.4em;
+      scroll-margin-top: 16px;
+    }
+    .markdown-body p, .markdown-body ul, .markdown-body ol {
+      margin-top: 0;
+      margin-bottom: 14px;
+    }
+    .markdown-body li + li {
+      margin-top: 4px;
+    }
+    .markdown-body code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--bg-tertiary);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+    }
+    .markdown-body code.clickable-code-ref {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(47, 129, 247, 0.35);
+      cursor: pointer;
+      padding: 0.15em 0.5em;
+      border-radius: 5px;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .markdown-body code.clickable-code-ref:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+    .markdown-body pre {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-bottom: 18px;
+    }
+    .markdown-body pre code {
+      background: none;
+      padding: 0;
+      font-size: 13.2px;
+      line-height: 1.5;
+    }
+    .copy-code-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      border-radius: 5px;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .copy-code-btn:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+    .markdown-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+      font-size: 14px;
+      display: block;
+      overflow-x: auto;
+    }
+    .markdown-body th, .markdown-body td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+    }
+    .markdown-body th {
+      background: var(--bg-secondary);
+      font-weight: 600;
+    }
+    .markdown-body blockquote {
+      margin: 0 0 16px;
+      padding: 8px 16px;
+      color: var(--text-secondary);
+      border-left: 4px solid var(--accent);
+      background: var(--bg-secondary);
+      border-radius: 0 6px 6px 0;
+    }
+    .markdown-body hr {
+      border: none;
+      border-top: 1px solid var(--border-color);
+      margin: 24px 0;
+    }
+
+    @keyframes targetPulse {
+      0% { background-color: rgba(47, 129, 247, 0.35); }
+      100% { background-color: transparent; }
+    }
+    .heading-flash {
+      animation: targetPulse 1.8s ease-out;
+      border-radius: 4px;
+    }
+
+    /* Right Outline (TOC) Drawer — opened from the header "目次" button */
+    .toc-sidebar {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(84vw, 320px);
+      z-index: 140;
+      border-left: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      padding: 16px 12px;
+      overflow-y: auto;
+      transform: translateX(105%);
+      visibility: hidden;
+      transition: transform 0.22s ease, visibility 0s linear 0.22s;
+      box-shadow: var(--shadow);
+    }
+    .toc-sidebar.mobile-open {
+      transform: translateX(0);
+      visibility: visible;
+      transition: transform 0.22s ease, visibility 0s;
+    }
+    .toc-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      padding-left: 6px;
+    }
+    .toc-link {
+      display: block;
+      font-size: 12.2px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 4px 6px;
+      border-radius: 4px;
+      line-height: 1.35;
+      margin-bottom: 2px;
+    }
+    .toc-link:hover {
+      color: var(--accent);
+      background: var(--bg-hover);
+    }
+    .toc-link.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-weight: 700;
+    }
+    .toc-h1 { padding-left: 6px; font-weight: 700; }
+    .toc-h2 { padding-left: 6px; font-weight: 600; }
+    .toc-h3 { padding-left: 18px; font-size: 11.5px; }
+
+    /* Prev / Next Navigation Footer */
+    .nav-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+    .nav-card {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .nav-card:hover {
+      border-color: var(--accent);
+    }
+    .nav-card-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .nav-card-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* Code File Modal Dialog */
+    .code-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: var(--modal-backdrop);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 100;
+    }
+    /* Keep the left menu usable. A full-screen dim hid the selected submenu. */
+    .code-modal-backdrop.open {
+      display: flex;
+      top: 56px;
+      left: var(--sidebar-width);
+    }
+    .code-modal-backdrop.open .code-modal {
+      max-height: calc(100vh - 56px - 48px);
+    }
+    body:has(.sidebar.collapsed) .code-modal-backdrop.open {
+      left: 0;
+    }
+    .code-modal {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 980px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      animation: modalFadeIn 0.16s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .code-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+    .code-modal-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .code-modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-modal-path {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .code-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-modal-close {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .code-modal-close:hover {
+      background: var(--bg-hover);
+    }
+    .code-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 0;
+      background: var(--code-bg);
+    }
+    .code-modal-pre {
+      margin: 0;
+      padding: 18px 20px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13.3px;
+      line-height: 1.55;
+      overflow-x: auto;
+    }
+
+    @media (max-width: 1150px) {
+      .doc-meta-bar {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        background: var(--bg-primary);
+        margin-bottom: 12px;
+        padding-top: 4px;
+        padding-bottom: 10px;
+      }
+      .toc-link { font-size: 15px; padding: 12px 10px; }
+    }
+    @media (max-width: 820px) {
+      /* A submenu scrollIntoView pans the visual viewport and hides the
+         unfixed header. Lock the shell to the visible viewport instead. */
+      html, body {
+        position: fixed;
+        left: 0;
+        width: 100%;
+        top: var(--vv-offset-top, 0px);
+        height: var(--app-height, 100dvh);
+        max-height: var(--app-height, 100dvh);
+        overflow: hidden;
+        overscroll-behavior: none;
+      }
+      .topbar {
+        position: relative;
+        z-index: 200;
+        height: auto;
+        min-height: 52px;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 8px 10px;
+        gap: 8px;
+      }
+      .topbar-left { flex: 1 1 0; min-width: 0; }
+      .brand { min-width: 0; }
+      .brand > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+      .toc-header-btn {
+        order: 1;
+        margin-left: 0;
+        min-width: 44px;
+        min-height: 44px;
+      }
+      .topbar-right {
+        order: 2;
+        margin-left: 0;
+        flex: 1 1 100%;
+        min-width: 0;
+        max-width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .brand {
+        white-space: nowrap;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+      .menu-btn {
+        flex-shrink: 0;
+        min-width: 44px;
+        min-height: 44px;
+      }
+      .menu-btn, .icon-btn, .timer-btn, .filter-tab,
+      .accordion-header, .mini-link-btn, .copy-code-btn, .nav-card {
+        min-height: 44px;
+      }
+      .icon-btn, .timer-btn { min-width: 44px; }
+      .timer-box { padding: 4px 8px; }
+      .sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        margin-left: 0 !important;
+        transform: translateX(-102%);
+        transition: transform 0.22s ease;
+        box-shadow: var(--shadow);
+        width: min(88vw, 360px) !important;
+        max-width: 88vw;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+        z-index: 140;
+      }
+      body .code-modal-backdrop.open,
+      body:has(.sidebar.collapsed) .code-modal-backdrop.open {
+        top: calc(var(--vv-offset-top, 0px) + var(--mobile-topbar, 120px));
+        left: 0;
+        bottom: calc(var(--vv-bottom-gap, 0px) + var(--mobile-footer, 0px));
+        height: auto;
+        padding: 0;
+        align-items: stretch;
+      }
+      .code-modal-backdrop.open .code-modal {
+        max-height: 100%;
+        height: 100%;
+        border-radius: 0;
+      }
+      .code-modal-header { padding: 12px; }
+      .code-modal-title { font-size: 14px; }
+      .code-modal-path { overflow-wrap: anywhere; }
+      .code-modal-actions { flex-wrap: wrap; width: 100%; }
+      .code-modal-close {
+        flex: 1 1 100%;
+        min-height: 44px;
+        font-size: 16px;
+      }
+      .sidebar-resizer { display: none; }
+      .accordion-toolbar > span { display: none; }
+      .layout { min-height: 0; }
+      .content-wrapper,
+      .file-list,
+      .toc-sidebar,
+      .code-modal-body {
+        overscroll-behavior: contain;
+      }
+      .content-wrapper {
+        padding: 14px 14px 28px;
+      }
+      .markdown-body { font-size: 15.5px; line-height: 1.75; }
+      .markdown-body h1 { font-size: 1.42em; }
+      .markdown-body h2 { font-size: 1.22em; }
+      .markdown-body table { font-size: 13px; }
+      .markdown-body pre,
+      .markdown-body table,
+      .markdown-body .mermaid,
+      .markdown-body img,
+      .markdown-body svg { max-width: 100%; }
+      .markdown-body pre code { font-size: 11.5px; }
+      .code-modal-pre { font-size: 11.5px; padding: 12px; }
+      .toc-link { font-size: 14px; min-height: 44px; }
+      .search-input { font-size: 16px; padding: 10px 12px; }
+      .filter-tab { font-size: 13px; }
+      .file-item { padding-top: 12px; padding-bottom: 12px; font-size: 14px; min-height: 44px; }
+      .sub-heading-item {
+        font-size: 13px;
+        padding: 10px 8px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .sub-toggle-btn { min-height: 44px; padding: 6px 10px; font-size: 13px; }
+      .nav-footer {
+        position: static;
+        flex-shrink: 0;
+        flex-direction: row;
+        gap: 8px;
+        margin: 0;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-color);
+        z-index: 180;
+      }
+      .nav-footer:empty { display: none; }
+      .nav-card { min-width: 0; padding: 8px 10px; }
+      .nav-card-label { font-size: 10.5px; }
+      .nav-card-title {
+        overflow-wrap: anywhere;
+        font-size: 12.5px;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .brand-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn" title="サイドメニュー開閉">☰</button>
+      <div class="brand" id="brandHomeBtn" title="トップ（WBS・行動計画）へ戻る">
+        <span>🚀 Codility ＆ Kotlin / Android 対策ポータル</span>
+        <span class="brand-badge" id="docCountBadge">全44教材収録</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <!-- 200-Minute Exam Timer -->
+      <div class="timer-box" title="本番模試用 200分タイマー">
+        <span>⏱️</span>
+        <span class="timer-display" id="timerDisplay">200:00</span>
+        <button class="timer-btn" id="timerStartBtn">開始</button>
+        <button class="timer-btn" id="timerResetBtn">リセット</button>
+      </div>
+      <button class="icon-btn" id="themeBtn" title="テーマ切替">🌙 外観切替</button>
+      <a class="icon-btn" href="https://github.com/hiro-s-2000/web_test_codility_countermeasure" target="_blank" rel="noopener">GitHub</a>
+    </div>
+    <button type="button" class="menu-btn toc-header-btn" id="tocOpenBtn" title="このページの目次を開閉" aria-controls="tocSidebar" aria-expanded="false">目次</button>
+  </header>
+
+  <div class="layout">
+    <div class="drawer-scrim" id="drawerScrim" hidden></div>
+    <!-- Left Sidebar (Resizable & Accordion) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-controls">
+        <input type="search" id="searchInput" class="search-input" placeholder="🔍 全文・コード横断検索 (例: 二分探索, ViewModel, セット5)" />
+        <div class="filter-tabs" id="filterTabs">
+          <button class="filter-tab active" data-cat="all">上から順</button>
+          <button class="filter-tab" data-cat="guide">📚 対策書</button>
+          <button class="filter-tab" data-cat="exam">📝 模試</button>
+          <button class="filter-tab" data-cat="kotlin">💻 Kotlin</button>
+        </div>
+        <div class="accordion-toolbar">
+          <span title="右端の境界線をドラッグして横幅を調整できます">↔ 右端ドラッグで幅調整</span>
+          <div class="accordion-toolbar-btns">
+            <button class="mini-link-btn" id="expandAllBtn" type="button">すべて展開</button>
+            <span>/</span>
+            <button class="mini-link-btn" id="collapseAllBtn" type="button">折りたたむ</button>
+          </div>
+        </div>
+      </div>
+      <div class="file-list" id="fileList"></div>
+      <!-- Drag Handle to resize sidebar width -->
+      <div class="sidebar-resizer" id="sidebarResizer" title="ドラッグしてメニューの横幅を変更（ダブルクリックで初期幅にリセット）"></div>
+    </aside>
+
+    <!-- Center Document Viewer -->
+    <main class="content-wrapper" id="contentWrapper">
+      <div class="content-container">
+        <div class="doc-meta-bar">
+          <span class="doc-badge" id="docCategoryBadge">📚 対策ガイド</span>
+          <div class="doc-actions" id="docActions"></div>
+        </div>
+        <article class="markdown-body" id="docBody"></article>
+        <div class="nav-footer" id="navFooter"></div>
+      </div>
+    </main>
+
+    <!-- Right Table of Contents -->
+    <aside class="toc-sidebar" id="tocSidebar">
+      <div class="toc-title">📑 このページの目次</div>
+      <nav id="tocList"></nav>
+    </aside>
+  </div>
+
+  <!-- Kotlin Code Dialog Modal -->
+  <div class="code-modal-backdrop" id="codeModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="codeModalTitle">
+    <div class="code-modal" id="codeModal">
+      <div class="code-modal-header">
+        <div class="code-modal-title-group">
+          <div class="code-modal-title" id="codeModalTitle">💻 Kotlin コード</div>
+          <div class="code-modal-path" id="codeModalPath">kotlin/example.kt</div>
+        </div>
+        <div class="code-modal-actions">
+          <button class="icon-btn" id="codeModalCopyBtn">📋 コード全文をコピー</button>
+          <button class="icon-btn" id="codeModalFullBtn" title="背景のメイン画面でもこのファイルを開く">📄 メイン画面で表示</button>
+          <button class="code-modal-close" id="codeModalCloseBtn" title="Esc でも閉じられます">✕ 閉じる</button>
+        </div>
+      </div>
+      <div class="code-modal-body" id="codeModalBody">
+        <pre class="code-modal-pre"><code class="language-kotlin" id="codeModalCode"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Embedded Dataset -->
+  <script src="./docs_data.js"></script>
+  <script>
+    (function () {
+      function kotlinTitleCompare(a, b) {
+        const ma = /^領域(\d+)/.exec(a.title);
+        const mb = /^領域(\d+)/.exec(b.title);
+        if (ma && mb) return Number(ma[1]) - Number(mb[1]);
+        if (ma) return 1;
+        if (mb) return -1;
+        return 0;
+      }
+
+      function docsFromDataMap(map) {
+        const built = [];
+        Object.keys(map || {}).forEach((path) => {
+          if (path === "README.md" || path.startsWith("別途分析/")) return;
+          const base = path.split("/").pop();
+          const title = base.replace(/\.(md|kt)$/i, "");
+          let category;
+          let categoryLabel;
+          let type;
+          if (path.startsWith("模擬試験_問題リスト/")) {
+            category = "exam";
+            categoryLabel = "📝 模擬試験・解答バンク";
+            type = "markdown";
+          } else if (/\.kt$/i.test(path)) {
+            category = "kotlin";
+            categoryLabel = "💻 Kotlin 実装コード";
+            type = "kotlin";
+          } else if (/\.md$/i.test(path)) {
+            category = "guide";
+            categoryLabel = "📚 対策ガイド・1次面接";
+            type = "markdown";
+          } else {
+            return;
+          }
+          built.push({
+            id: path,
+            category: category,
+            categoryLabel: categoryLabel,
+            title: title,
+            path: path,
+            type: type,
+            content: map[path]
+          });
+        });
+        return built;
+      }
+
+      const docs = (window.CODILITY_DOCS && window.CODILITY_DOCS.length)
+        ? window.CODILITY_DOCS
+        : docsFromDataMap(window.DOCS_DATA || {});
+      const docCountBadge = document.getElementById("docCountBadge");
+      if (docCountBadge) {
+        docCountBadge.textContent = "全" + docs.length + "教材収録";
+      }
+      let currentCat = "all";
+      let searchQuery = "";
+      let activeId = docs.length ? docs[0].id : null;
+      let activeHeadingText = "";
+      let currentModalDoc = null;
+      let pinnedCodeScrollTop = null;
+
+      // By default all accordions are closed; only the accordion containing the active page opens
+      const openCategories = {
+        "📚 対策ガイド・1次面接": false,
+        "📝 模擬試験・解答バンク": false,
+        "💻 Kotlin 実装コード": false
+      };
+      const openSubDocs = {};
+
+      const fileListEl = document.getElementById("fileList");
+      let sidebarScrollToken = 0;
+
+      function focusSidebarSelection(targetDom) {
+        if (!targetDom || !fileListEl.contains(targetDom)) return;
+        const token = ++sidebarScrollToken;
+        let tries = 0;
+        const apply = () => {
+          if (token !== sidebarScrollToken || !fileListEl.contains(targetDom)) return;
+          const listRect = fileListEl.getBoundingClientRect();
+          const itemRect = targetDom.getBoundingClientRect();
+          if (itemRect.height === 0 && tries < 4) {
+            tries += 1;
+            requestAnimationFrame(apply);
+            return;
+          }
+          const top = itemRect.top - listRect.top + fileListEl.scrollTop;
+          const maxTop = Math.max(0, fileListEl.scrollHeight - fileListEl.clientHeight);
+          fileListEl.scrollTop = Math.min(maxTop, Math.max(0, top - 8));
+          if (window.innerWidth <= 820) {
+            const active = document.activeElement;
+            if (active && active !== document.body && active.closest && active.closest("#sidebar, #tocSidebar")) {
+              active.blur();
+            }
+            pinDocumentScroll();
+            return;
+          }
+          if (!targetDom.hasAttribute("tabindex")) {
+            targetDom.setAttribute("tabindex", "-1");
+          }
+          targetDom.focus({ preventScroll: true });
+        };
+        requestAnimationFrame(apply);
+      }
+      const docBodyEl = document.getElementById("docBody");
+      const docBadgeEl = document.getElementById("docCategoryBadge");
+      const docActionsEl = document.getElementById("docActions");
+      const tocListEl = document.getElementById("tocList");
+      const navFooterEl = document.getElementById("navFooter");
+      const searchInputEl = document.getElementById("searchInput");
+      const contentWrapperEl = document.getElementById("contentWrapper");
+      const sidebarEl = document.getElementById("sidebar");
+      const sidebarResizerEl = document.getElementById("sidebarResizer");
+
+      // Modal elements
+      const codeModalBackdrop = document.getElementById("codeModalBackdrop");
+      const codeModalTitle = document.getElementById("codeModalTitle");
+      const codeModalPath = document.getElementById("codeModalPath");
+      const codeModalCode = document.getElementById("codeModalCode");
+      const codeModalCopyBtn = document.getElementById("codeModalCopyBtn");
+      const codeModalFullBtn = document.getElementById("codeModalFullBtn");
+      const codeModalCloseBtn = document.getElementById("codeModalCloseBtn");
+      const codeModalBodyEl = document.getElementById("codeModalBody");
+
+      if (window.marked) {
+        marked.setOptions({
+          gfm: true,
+          breaks: false
+        });
+      }
+
+      // Restore saved sidebar width
+      const savedWidth = Number(localStorage.getItem("codility_sidebar_width"));
+      if (savedWidth >= 200 && savedWidth <= 640) {
+        document.documentElement.style.setProperty("--sidebar-width", savedWidth + "px");
+      }
+
+      // Sidebar Drag Resize Logic
+      let isResizing = false;
+      sidebarResizerEl.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        isResizing = true;
+        sidebarResizerEl.classList.add("dragging");
+        document.body.classList.add("resizing-sidebar");
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        if (!isResizing) return;
+        const newWidth = Math.max(200, Math.min(640, e.clientX));
+        document.documentElement.style.setProperty("--sidebar-width", newWidth + "px");
+      });
+
+      window.addEventListener("mouseup", () => {
+        if (!isResizing) return;
+        isResizing = false;
+        sidebarResizerEl.classList.remove("dragging");
+        document.body.classList.remove("resizing-sidebar");
+        const curWidth = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--sidebar-width"), 10);
+        if (curWidth) {
+          localStorage.setItem("codility_sidebar_width", String(curWidth));
+        }
+      });
+
+      sidebarResizerEl.addEventListener("dblclick", () => {
+        document.documentElement.style.setProperty("--sidebar-width", "330px");
+        localStorage.setItem("codility_sidebar_width", "330");
+      });
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function slugifyHeading(text) {
+        return String(text || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}\s　-]/gu, "")
+          .replace(/[\s　]+/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function extractMarkdownHeadings(mdContent) {
+        if (!mdContent) return [];
+        const lines = mdContent.split(/\r?\n/);
+        const result = [];
+        let inCodeBlock = false;
+        for (const line of lines) {
+          if (line.trim().startsWith("```")) {
+            inCodeBlock = !inCodeBlock;
+            continue;
+          }
+          if (inCodeBlock) continue;
+          const m = line.match(/^(#{2,3})\s+(.+)$/);
+          if (m) {
+            const level = m[1].length;
+            const text = m[2].replace(/`/g, "").trim();
+            result.push({ level, text });
+          }
+        }
+        return result;
+      }
+
+      function extractKotlinHeadings(content, fallbackTitle) {
+        const lines = String(content || "").split(/\r?\n/);
+        const result = [];
+        let inDoc = false;
+        let tookDocLine = false;
+        for (let i = 0; i < lines.length; i++) {
+          const raw = lines[i];
+          const trim = raw.trim();
+          if (!inDoc && trim.startsWith("/**")) {
+            inDoc = true;
+            tookDocLine = false;
+            continue;
+          }
+          if (inDoc) {
+            if (trim.startsWith("*/")) {
+              inDoc = false;
+              continue;
+            }
+            const text = trim.replace(/^\*\s?/, "").trim();
+            if (!tookDocLine && text && !text.startsWith("@")) {
+              result.push({ level: 2, text: text, line: i + 1 });
+              tookDocLine = true;
+            }
+            continue;
+          }
+          const decl = raw.match(/^(?:data\s+|enum\s+|sealed\s+|annotation\s+|value\s+)?(?:fun\s+interface|fun|class|object)\s+(\w+)/);
+          if (!decl) continue;
+          const kind = decl[0];
+          if (/^(?:data|enum|sealed)\s/.test(kind) || kind.startsWith("fun interface")) continue;
+          if (decl[1] === "main") continue;
+          result.push({ level: 3, text: decl[1], line: i + 1 });
+        }
+        if (!result.length) {
+          result.push({ level: 2, text: fallbackTitle || "コード", line: 1 });
+        }
+        return result;
+      }
+
+      // Pre-extract headings so sidebar sub-accordions can jump to sections/tasks
+      docs.forEach((d) => {
+        if (d.type === "markdown") {
+          d.headings = extractMarkdownHeadings(d.content);
+        } else if (d.type === "kotlin") {
+          d.headings = extractKotlinHeadings(d.content, d.title);
+        } else {
+          d.headings = [];
+        }
+      });
+
+      function renderMarkdownSafe(mdText) {
+        if (window.GithubPreview) {
+          return window.GithubPreview.renderMarkdown(mdText);
+        }
+        if (window.marked) {
+          return marked.parse(mdText);
+        }
+        return "<pre>" + escapeHtml(mdText) + "</pre>";
+      }
+
+      function safeDecodeURI(s) {
+        try {
+          return decodeURIComponent(s);
+        } catch (_) {
+          return s;
+        }
+      }
+
+      // Resolve any relative path, filename, or title to a doc object in window.CODILITY_DOCS
+      function resolveDocByLink(rawPath) {
+        if (!rawPath) return null;
+        let cleaned = safeDecodeURI(String(rawPath).trim())
+          .replace(/^<+|>+$/g, "")
+          .replace(/^file:\/\/\/.*\/[^/]*\//i, "")
+          .replace(/^https?:\/\/hiro-s-2000\.github\.io\/web_test_codility_countermeasure\/?#?/i, "")
+          .replace(/^https?:\/\/github\.com\/hiro-s-2000\/web_test_codility_countermeasure\/(?:blob|tree)\/main\//i, "")
+          .replace(/^(\.\/|\.\.\/|\/)+/, "");
+
+        if (!cleaned) return null;
+
+        // Backward-compatibility alias for renamed guide file
+        if (cleaned.includes("00_【統合完全版】") && cleaned.includes("Codility対策＆Kotlin実践大全")) {
+          cleaned = "00_【統合完全版】Codility対策＆Kotlin実践大全.md";
+        }
+        const legacyExamNames = {
+          "セット1_【11月8日用】問題冊子.md": "セット1_【基礎から標準】問題冊子.md",
+          "セット1_【11月8日用】解答・解説・1次面接尋問.md": "セット1_【基礎から標準】解答・解説・1次面接尋問.md",
+          "セット2_【11月10日用】問題冊子.md": "セット2_【状態遷移とグリッド】問題冊子.md",
+          "セット2_【11月10日用】解答・解説・1次面接尋問.md": "セット2_【状態遷移とグリッド】解答・解説・1次面接尋問.md"
+        };
+        Object.keys(legacyExamNames).forEach((oldName) => {
+          if (cleaned.includes(oldName)) cleaned = cleaned.replace(oldName, legacyExamNames[oldName]);
+        });
+
+        // 1. Exact id or path match
+        let found = docs.find((d) => d.id === cleaned || d.path === cleaned || d.title === cleaned);
+        if (found) return found;
+
+        // 2. Basename match
+        const base = cleaned.split("/").pop();
+        found = docs.find((d) => {
+          const dBase = d.path.split("/").pop();
+          return dBase === base || d.title === base || d.title + ".md" === base || d.title + ".kt" === base;
+        });
+        if (found) return found;
+
+        // 3. Normalized match (ignoring whitespace differences)
+        const norm = base.replace(/\s+/g, "");
+        found = docs.find((d) => {
+          const dBase = d.path.split("/").pop().replace(/\s+/g, "");
+          return dBase === norm || d.title.replace(/\s+/g, "") === norm;
+        });
+        return found || null;
+      }
+
+      // Ensure the sidebar filter & search query never hide a newly selected document
+      function syncFilterForDoc(doc) {
+        if (!doc) return;
+        if (currentCat !== "all" && currentCat !== doc.category) {
+          currentCat = "all";
+          document.querySelectorAll(".filter-tab").forEach((b) => {
+            b.classList.toggle("active", b.dataset.cat === "all");
+          });
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.trim().toLowerCase();
+          const matchesSearch =
+            doc.title.toLowerCase().includes(q) ||
+            doc.path.toLowerCase().includes(q) ||
+            doc.content.toLowerCase().includes(q);
+          if (!matchesSearch) {
+            searchQuery = "";
+            searchInputEl.value = "";
+          }
+        }
+      }
+
+      // Open Code Modal Dialog for a .kt file and sync sidebar selection
+      function openCodeModal(doc, headingText) {
+        if (!doc) return;
+        currentModalDoc = doc;
+        syncFilterForDoc(doc);
+        Object.keys(openCategories).forEach((k) => {
+          openCategories[k] = k === doc.categoryLabel || k === "上からこの順に進める";
+        });
+        const headings = doc.headings || [];
+        const chosen = headings.find((h) => h.text === headingText) || headings[0] || null;
+        activeHeadingText = chosen ? chosen.text : (headingText || "");
+        openSubDocs[doc.id] = true;
+        codeModalTitle.textContent = "💻 " + doc.title;
+        codeModalPath.textContent = "📁 " + doc.path;
+        codeModalCode.textContent = doc.content;
+        codeModalCode.className = "language-kotlin";
+        delete codeModalCode.dataset.highlighted;
+        if (window.hljs) {
+          hljs.highlightElement(codeModalCode);
+        }
+        codeModalBackdrop.classList.add("open");
+        suppressCodeScrollSync += 1;
+        if (codeModalBodyEl) codeModalBodyEl.scrollTop = 0;
+        renderSidebar(true);
+        const releaseOpenScroll = () => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              suppressCodeScrollSync = Math.max(0, suppressCodeScrollSync - 1);
+            });
+          });
+        };
+        if (chosen && chosen.line > 1) {
+          requestAnimationFrame(() => {
+            scrollCodeModalToLine(chosen.line, 0, releaseOpenScroll);
+          });
+        } else {
+          pinnedCodeScrollTop = codeModalBodyEl ? codeModalBodyEl.scrollTop : null;
+          releaseOpenScroll();
+        }
+        syncChromeOffsets();
+      }
+
+      function scrollCodeModalToLine(line, attempt, done) {
+        if (!codeModalBodyEl || !currentModalDoc) {
+          if (typeof done === "function") done();
+          return;
+        }
+        const total = String(currentModalDoc.content || "").split(/\r?\n/).length;
+        const ratio = Math.max(0, (Number(line) - 1) / Math.max(1, total));
+        const max = Math.max(0, codeModalBodyEl.scrollHeight - codeModalBodyEl.clientHeight);
+        if (max < 8 && (attempt || 0) < 6) {
+          requestAnimationFrame(() => scrollCodeModalToLine(line, (attempt || 0) + 1, done));
+          return;
+        }
+        codeModalBodyEl.scrollTop = Math.min(max, Math.round(ratio * max));
+        pinnedCodeScrollTop = codeModalBodyEl.scrollTop;
+        if (typeof done === "function") done();
+      }
+
+      function headingForCodeScroll() {
+        if (!currentModalDoc || !codeModalBodyEl) return null;
+        const headings = currentModalDoc.headings || [];
+        if (!headings.length) return null;
+        const total = String(currentModalDoc.content || "").split(/\r?\n/).length;
+        const max = Math.max(1, codeModalBodyEl.scrollHeight - codeModalBodyEl.clientHeight);
+        const line = 1 + (codeModalBodyEl.scrollTop / max) * Math.max(0, total - 1);
+        let current = headings[0];
+        headings.forEach((h) => {
+          if ((h.line || 1) <= line + 1) current = h;
+        });
+        return current;
+      }
+
+      function closeCodeModal() {
+        const wasOpen = codeModalBackdrop.classList.contains("open") || currentModalDoc !== null;
+        codeModalBackdrop.classList.remove("open");
+        currentModalDoc = null;
+        if (wasOpen && activeId) {
+          const activeDoc = docs.find((d) => d.id === activeId);
+          if (activeDoc) {
+            syncFilterForDoc(activeDoc);
+            Object.keys(openCategories).forEach((k) => {
+              openCategories[k] = k === activeDoc.categoryLabel;
+            });
+            openSubDocs[activeDoc.id] = true;
+          }
+          const pageHeading = visibleTocHeadingText();
+          activeHeadingText = pageHeading || "";
+          renderSidebar(true);
+          syncTocToVisibleHeading();
+        }
+      }
+
+      codeModalCloseBtn.addEventListener("click", closeCodeModal);
+      codeModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === codeModalBackdrop) {
+          closeCodeModal();
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && codeModalBackdrop.classList.contains("open")) {
+          closeCodeModal();
+        }
+      });
+      codeModalCopyBtn.addEventListener("click", () => {
+        if (!currentModalDoc) return;
+        navigator.clipboard.writeText(currentModalDoc.content);
+        codeModalCopyBtn.textContent = "✅ コピー完了!";
+        setTimeout(() => {
+          codeModalCopyBtn.textContent = "📋 コード全文をコピー";
+        }, 1600);
+      });
+      codeModalFullBtn.addEventListener("click", () => {
+        if (!currentModalDoc) return;
+        const targetId = currentModalDoc.id;
+        closeCodeModal();
+        selectDoc(targetId, true, null, true);
+      });
+
+      // Map any heading element (h1/h2/h3/h4) to the corresponding h2/h3 item in the sidebar sub-accordion
+      function resolveSidebarHeadingText(matchedEl) {
+        if (!matchedEl) return "";
+        const cleanText = (el) => el.textContent.replace(/`/g, "").trim();
+        if (matchedEl.tagName === "H2" || matchedEl.tagName === "H3") {
+          return cleanText(matchedEl);
+        }
+        const allHeadings = Array.from(docBodyEl.querySelectorAll("h1, h2, h3, h4"));
+        const idx = allHeadings.indexOf(matchedEl);
+        for (let i = idx - 1; i >= 0; i--) {
+          if (allHeadings[i].tagName === "H2" || allHeadings[i].tagName === "H3") {
+            return cleanText(allHeadings[i]);
+          }
+        }
+        for (let i = idx + 1; i < allHeadings.length; i++) {
+          if (allHeadings[i].tagName === "H2" || allHeadings[i].tagName === "H3") {
+            return cleanText(allHeadings[i]);
+          }
+        }
+        return cleanText(matchedEl);
+      }
+
+      function scrollHeadingIntoArticle(el) {
+        if (!el || !contentWrapperEl) return;
+        const cRect = contentWrapperEl.getBoundingClientRect();
+        const eRect = el.getBoundingClientRect();
+        let stickyH = 0;
+        if (window.innerWidth <= 1150) {
+          const bar = contentWrapperEl.querySelector(".doc-meta-bar");
+          if (bar) stickyH = bar.offsetHeight;
+        }
+        const next = contentWrapperEl.scrollTop + (eRect.top - cRect.top) - stickyH - 8;
+        const maxTop = Math.max(0, contentWrapperEl.scrollHeight - contentWrapperEl.clientHeight);
+        contentWrapperEl.scrollTo({
+          top: Math.min(maxTop, Math.max(0, next)),
+          behavior: "smooth"
+        });
+        pinDocumentScroll();
+        window.setTimeout(pinDocumentScroll, 400);
+        window.setTimeout(pinDocumentScroll, 800);
+      }
+
+      function scrollToHeadingInDoc(anchorRaw) {
+        if (!anchorRaw) return false;
+        const decoded = safeDecodeURI(anchorRaw.replace(/^#/, "")).trim();
+        if (!decoded) return false;
+
+        const headings = Array.from(docBodyEl.querySelectorAll("h1, h2, h3, h4"));
+        const targetSlug = slugifyHeading(decoded);
+        const normDecoded = decoded.toLowerCase().replace(/[\s　`]+/g, "");
+
+        let matched = headings.find(
+          (h) =>
+            h.id === decoded ||
+            h.dataset.slug === decoded.toLowerCase() ||
+            (targetSlug && h.dataset.slug === targetSlug) ||
+            h.textContent.trim().toLowerCase().includes(decoded.toLowerCase()) ||
+            h.textContent.replace(/[\s　`]+/g, "").toLowerCase().includes(normDecoded)
+        );
+
+        if (matched) {
+          activeHeadingText = resolveSidebarHeadingText(matched);
+          const activeDoc = docs.find((d) => d.id === activeId);
+          if (activeDoc) {
+            syncFilterForDoc(activeDoc);
+            Object.keys(openCategories).forEach((k) => {
+              openCategories[k] = k === activeDoc.categoryLabel || k === "上からこの順に進める";
+            });
+            openSubDocs[activeDoc.id] = true;
+          }
+          scrollHeadingIntoArticle(matched);
+          matched.classList.remove("heading-flash");
+          void matched.offsetWidth;
+          matched.classList.add("heading-flash");
+          renderSidebar(true);
+          syncTocToVisibleHeading();
+          return true;
+        }
+        return false;
+      }
+
+      function visibleTocLink() {
+        const links = Array.from(tocListEl.querySelectorAll(".toc-link"));
+        if (!links.length) return null;
+        const rootTop = contentWrapperEl.getBoundingClientRect().top;
+        let current = links[0];
+        links.forEach((a) => {
+          const id = (a.getAttribute("href") || "").slice(1);
+          if (!id) return;
+          const heading = docBodyEl.querySelector("#" + CSS.escape(id));
+          if (heading && heading.getBoundingClientRect().top - rootTop <= 32) {
+            current = a;
+          }
+        });
+        return current;
+      }
+
+      function visibleTocHeadingText() {
+        const link = visibleTocLink();
+        if (!link) return "";
+        if (link.classList.contains("toc-h2") || link.classList.contains("toc-h3")) {
+          return (link.dataset.heading || link.textContent || "").trim();
+        }
+        return "";
+      }
+
+      function markSidebarHeading(text) {
+        const items = fileListEl.querySelectorAll(".file-item-wrap.active-wrap .sub-heading-item");
+        let matchedEl = null;
+        items.forEach((el) => {
+          if (!matchedEl && text && el.dataset.heading === text) matchedEl = el;
+        });
+        if (!matchedEl) return;
+        items.forEach((el) => el.classList.toggle("active-heading", el === matchedEl));
+        revealInScrollParent(fileListEl, matchedEl);
+      }
+
+      function revealInScrollParent(parent, el) {
+        if (!parent || !el) return;
+        const parentRect = parent.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        if (elRect.height === 0) return;
+        if (elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom) return;
+        const top = elRect.top - parentRect.top + parent.scrollTop;
+        const maxTop = Math.max(0, parent.scrollHeight - parent.clientHeight);
+        parent.scrollTop = Math.min(maxTop, Math.max(0, top - 8));
+      }
+
+      function syncTocToVisibleHeading() {
+        const current = visibleTocLink();
+        tocListEl.querySelectorAll(".toc-link").forEach((a) => {
+          a.classList.toggle("active", a === current);
+        });
+        if (current) {
+          revealInScrollParent(document.getElementById("tocSidebar"), current);
+        }
+        if (currentModalDoc) return;
+        const text = visibleTocHeadingText();
+        if (text !== activeHeadingText) {
+          activeHeadingText = text;
+        }
+        markSidebarHeading(text);
+      }
+
+      function getFilteredDocs() {
+        const q = searchQuery.trim().toLowerCase();
+        return docs.filter((item) => {
+          if (currentCat !== "all" && item.category !== currentCat) return false;
+          if (!q) return true;
+          return (
+            item.title.toLowerCase().includes(q) ||
+            item.path.toLowerCase().includes(q) ||
+            item.content.toLowerCase().includes(q)
+          );
+        });
+      }
+
+      function getSearchSnippet(content, query) {
+        if (!query) return "";
+        const q = query.trim().toLowerCase();
+        const idx = content.toLowerCase().indexOf(q);
+        if (idx === -1) return "";
+        const start = Math.max(0, idx - 20);
+        const end = Math.min(content.length, idx + q.length + 35);
+        return "…" + content.slice(start, end).replace(/\s+/g, " ") + "…";
+      }
+
+      // Render Accordion Sidebar (Closed by default; active page's accordion open & selected inside)
+      function renderSidebar(scrollActiveIntoView = true) {
+        const filtered = getFilteredDocs();
+        fileListEl.innerHTML = "";
+
+        if (filtered.length === 0) {
+          fileListEl.innerHTML = '<div style="padding:16px;color:var(--text-secondary);font-size:13px;">該当するドキュメントがありません。</div>';
+          return;
+        }
+
+        const effectiveActiveId = currentModalDoc ? currentModalDoc.id : activeId;
+
+        const groups = {};
+        const studyOrder = currentCat === "all" && !searchQuery.trim();
+        if (studyOrder) {
+          groups["上からこの順に進める"] = filtered.slice();
+        } else {
+          filtered.forEach((item) => {
+            if (!groups[item.categoryLabel]) groups[item.categoryLabel] = [];
+            groups[item.categoryLabel].push(item);
+          });
+        }
+
+        let activeItemDom = null;
+        let activeSubHeadingDom = null;
+
+        Object.keys(groups).forEach((groupName) => {
+          const groupItems = groups[groupName];
+          if (!studyOrder && groupItems.length && groupItems[0].category === "kotlin") {
+            groupItems.sort(kotlinTitleCompare);
+          }
+          const hasActivePage = groupItems.some((item) => item.id === effectiveActiveId);
+          // Always ensure the category containing the currently active page is open unless manually toggled
+          const isCatOpen = searchQuery.trim()
+            ? true
+            : Boolean(openCategories[groupName]) || hasActivePage;
+
+          const sectionEl = document.createElement("div");
+          sectionEl.className =
+            "accordion-section" +
+            (isCatOpen ? " open" : "") +
+            (hasActivePage ? " has-active" : "");
+
+          const hdrBtn = document.createElement("button");
+          hdrBtn.type = "button";
+          hdrBtn.className = "accordion-header";
+          hdrBtn.innerHTML = `
+            <span class="accordion-header-left">
+              <span class="accordion-chevron">▶</span>
+              <span>${escapeHtml(groupName)}</span>
+            </span>
+            <span class="accordion-header-right">
+              ${hasActivePage ? '<span class="accordion-active-dot">選択中</span>' : ""}
+              <span class="accordion-count">${groupItems.length}</span>
+            </span>
+          `;
+          hdrBtn.addEventListener("click", () => {
+            const nextOpen = !sectionEl.classList.contains("open");
+            sectionEl.classList.toggle("open", nextOpen);
+            openCategories[groupName] = nextOpen;
+          });
+          sectionEl.appendChild(hdrBtn);
+
+          const bodyEl = document.createElement("div");
+          bodyEl.className = "accordion-body";
+
+          groupItems.forEach((item) => {
+            const isItemActive = item.id === effectiveActiveId;
+            const hasSubHeadings = item.headings && item.headings.length > 0;
+            const isSubOpen = Boolean(openSubDocs[item.id]) || (isItemActive && hasSubHeadings);
+
+            const wrapEl = document.createElement("div");
+            wrapEl.className =
+              "file-item-wrap" +
+              (isSubOpen ? " sub-open" : "") +
+              (isItemActive ? " active-wrap" : "");
+
+            const el = document.createElement("div");
+            el.className = "file-item" + (isItemActive ? " active" : "");
+
+            let topHtml = `<div class="file-item-top"><span class="file-item-title">${escapeHtml(item.title)}</span>`;
+            if (isItemActive) {
+              const badgeLabel = currentModalDoc && item.id === currentModalDoc.id ? "📍 ダイアログ中" : "📍 表示中";
+              topHtml += `<span class="active-page-badge">${badgeLabel}</span>`;
+            }
+            if (hasSubHeadings) {
+              topHtml += `<button type="button" class="sub-toggle-btn" title="問題・章の一覧を開閉">${isSubOpen ? "▾ 目次" : "▸ 目次"}</button>`;
+            }
+            topHtml += `</div>`;
+
+            let subHtml = "";
+            if (item.type === "kotlin") {
+              subHtml += `<div class="file-item-sub"><span>${escapeHtml(item.path)}</span><span class="dialog-pill">ダイアログ</span></div>`;
+            }
+            if (searchQuery.trim()) {
+              const snippet = getSearchSnippet(item.content, searchQuery);
+              if (snippet) {
+                subHtml += `<div class="search-snippet">${escapeHtml(snippet)}</div>`;
+              }
+            }
+
+            el.innerHTML = topHtml + subHtml;
+
+            if (isItemActive) {
+              activeItemDom = el;
+            }
+
+            // Sub-toggle button click (expand/collapse chapters/tasks inside sidebar)
+            const subToggleBtn = el.querySelector(".sub-toggle-btn");
+            if (subToggleBtn) {
+              subToggleBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const nextSub = !wrapEl.classList.contains("sub-open");
+                wrapEl.classList.toggle("sub-open", nextSub);
+                openSubDocs[item.id] = nextSub;
+                subToggleBtn.textContent = nextSub ? "▾ 目次" : "▸ 目次";
+              });
+            }
+
+            el.addEventListener("click", () => {
+              if (item.type === "kotlin") {
+                openCodeModal(item);
+              } else {
+                selectDoc(item.id);
+              }
+              closeMobileDrawers();
+            });
+
+            wrapEl.appendChild(el);
+
+            if (hasSubHeadings) {
+              const subListEl = document.createElement("div");
+              subListEl.className = "sub-heading-list";
+              let matchedSubAlready = false;
+              item.headings.forEach((h) => {
+                const subItem = document.createElement("a");
+                const isHeadingActive =
+                  !matchedSubAlready &&
+                  isItemActive &&
+                  activeHeadingText &&
+                  (activeHeadingText === h.text ||
+                    slugifyHeading(activeHeadingText) === slugifyHeading(h.text) ||
+                    activeHeadingText.includes(h.text) ||
+                    h.text.includes(activeHeadingText));
+                if (isHeadingActive) {
+                  matchedSubAlready = true;
+                  activeSubHeadingDom = subItem;
+                }
+                subItem.className = "sub-heading-item" + (isHeadingActive ? " active-heading" : "");
+                subItem.dataset.heading = h.text;
+                subItem.textContent = (h.level === 3 ? "・" : "▸ ") + h.text;
+                subItem.addEventListener("click", (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (item.type === "kotlin") {
+                    openCodeModal(item, h.text);
+                    closeMobileDrawers();
+                    return;
+                  }
+                  activeHeadingText = h.text;
+                  if (activeId === item.id) {
+                    scrollToHeadingInDoc(h.text);
+                  } else {
+                    selectDoc(item.id, true, h.text);
+                  }
+                  closeMobileDrawers();
+                });
+                subListEl.appendChild(subItem);
+              });
+              wrapEl.appendChild(subListEl);
+            }
+
+            bodyEl.appendChild(wrapEl);
+          });
+
+          sectionEl.appendChild(bodyEl);
+          fileListEl.appendChild(sectionEl);
+        });
+
+        const targetDom = activeSubHeadingDom || activeItemDom;
+        if (scrollActiveIntoView && targetDom) {
+          focusSidebarSelection(targetDom);
+        }
+      }
+
+      // Expand All / Collapse All buttons in sidebar toolbar
+      document.getElementById("expandAllBtn").addEventListener("click", () => {
+        Object.keys(openCategories).forEach((k) => (openCategories[k] = true));
+        docs.forEach((d) => {
+          if (d.headings && d.headings.length) openSubDocs[d.id] = true;
+        });
+        renderSidebar(false);
+      });
+
+      document.getElementById("collapseAllBtn").addEventListener("click", () => {
+        Object.keys(openCategories).forEach((k) => (openCategories[k] = false));
+        Object.keys(openSubDocs).forEach((k) => (openSubDocs[k] = false));
+        renderSidebar(false);
+      });
+
+      function findPairedExamDoc(currentDoc) {
+        if (currentDoc.category !== "exam") return null;
+        if (currentDoc.title.includes("問題冊子")) {
+          const prefix = currentDoc.title.split("問題冊子")[0];
+          return docs.find((d) => d.category === "exam" && d.title.startsWith(prefix) && d.title.includes("解答"));
+        }
+        if (currentDoc.title.includes("解答")) {
+          const prefix = currentDoc.title.split("解答")[0];
+          return docs.find((d) => d.category === "exam" && d.title.startsWith(prefix) && d.title.includes("問題冊子"));
+        }
+        return null;
+      }
+
+      function selectDoc(id, updateHash = true, targetAnchor = null, forceMainViewForKotlin = false) {
+        const doc = docs.find((d) => d.id === id) || resolveDocByLink(id) || docs[0];
+        if (!doc) return;
+
+        if (doc.type === "kotlin" && !forceMainViewForKotlin) {
+          openCodeModal(doc);
+          return;
+        }
+
+        currentModalDoc = null;
+        codeModalBackdrop.classList.remove("open");
+        syncFilterForDoc(doc);
+
+        activeId = doc.id;
+        activeHeadingText = targetAnchor ? safeDecodeURI(targetAnchor.replace(/^#/, "")).trim() : "";
+
+        // Close other accordions by default, and open ONLY the accordion & sub-accordion of the selected page
+        Object.keys(openCategories).forEach((k) => {
+          openCategories[k] = k === doc.categoryLabel || k === "上からこの順に進める";
+        });
+        Object.keys(openSubDocs).forEach((k) => {
+          openSubDocs[k] = false;
+        });
+        openSubDocs[doc.id] = true;
+
+        if (updateHash) {
+          const hashVal = targetAnchor
+            ? encodeURIComponent(doc.id) + "::" + encodeURIComponent(targetAnchor.replace(/^#/, ""))
+            : encodeURIComponent(doc.id);
+          history.pushState({ docId: doc.id, anchor: targetAnchor }, "", "#" + hashVal);
+        }
+
+        docBadgeEl.textContent = `${doc.categoryLabel}  /  ${doc.path}`;
+        docActionsEl.innerHTML = "";
+
+        const paired = findPairedExamDoc(doc);
+        if (paired) {
+          const pairBtn = document.createElement("button");
+          pairBtn.className = "icon-btn";
+          pairBtn.style.borderColor = "var(--accent)";
+          pairBtn.style.color = "var(--accent)";
+          pairBtn.textContent = doc.title.includes("問題冊子")
+            ? "🔓 対応する解答・解説を開く"
+            : "📝 対応する問題冊子に戻る";
+          pairBtn.addEventListener("click", () => selectDoc(paired.id));
+          docActionsEl.appendChild(pairBtn);
+        }
+
+        if (doc.type === "kotlin") {
+          const copyAllBtn = document.createElement("button");
+          copyAllBtn.className = "icon-btn";
+          copyAllBtn.textContent = "📋 Kotlinコード全文をコピー";
+          copyAllBtn.addEventListener("click", () => {
+            navigator.clipboard.writeText(doc.content);
+            copyAllBtn.textContent = "✅ コピー完了!";
+            setTimeout(() => (copyAllBtn.textContent = "📋 Kotlinコード全文をコピー"), 1800);
+          });
+          docActionsEl.appendChild(copyAllBtn);
+
+          const mdWrapped = `# ${doc.title}\n\n📁 ファイルパス: \`${doc.path}\`\n\n\`\`\`kotlin\n${doc.content}\n\`\`\``;
+          docBodyEl.innerHTML = renderMarkdownSafe(mdWrapped);
+        } else {
+          docBodyEl.innerHTML = renderMarkdownSafe(doc.content);
+        }
+
+        if (window.GithubPreview) {
+          window.GithubPreview.liftMermaid(docBodyEl);
+        }
+
+        // Syntax Highlighting & Copy Buttons on code blocks
+        docBodyEl.querySelectorAll("pre code").forEach((codeEl) => {
+          if (window.hljs) {
+            hljs.highlightElement(codeEl);
+          }
+          const pre = codeEl.parentElement;
+          const btn = document.createElement("button");
+          btn.className = "copy-code-btn";
+          btn.textContent = "Copy";
+          btn.addEventListener("click", () => {
+            navigator.clipboard.writeText(codeEl.innerText);
+            btn.textContent = "Copied!";
+            setTimeout(() => (btn.textContent = "Copy"), 1500);
+          });
+          pre.appendChild(btn);
+        });
+
+        // Turn inline <code> references to .kt or .md files into clickable chips
+        docBodyEl.querySelectorAll("code").forEach((codeEl) => {
+          if (codeEl.parentElement && codeEl.parentElement.tagName === "PRE") return;
+          if (codeEl.closest("a")) return;
+          const txt = codeEl.textContent.trim();
+          if (txt.endsWith(".kt") || txt.endsWith(".md")) {
+            const targetDoc = resolveDocByLink(txt);
+            if (targetDoc) {
+              codeEl.classList.add("clickable-code-ref");
+              codeEl.title = targetDoc.type === "kotlin"
+                ? `クリックしてコードダイアログを開く: ${targetDoc.path}`
+                : `クリックして画面へ遷移: ${targetDoc.title}`;
+              codeEl.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (targetDoc.type === "kotlin") {
+                  openCodeModal(targetDoc);
+                } else {
+                  selectDoc(targetDoc.id);
+                }
+              });
+            }
+          }
+        });
+
+        // Build Right Table of Contents & Heading Slugs
+        tocListEl.innerHTML = "";
+        const headings = docBodyEl.querySelectorAll("h1, h2, h3, h4");
+        headings.forEach((h, i) => {
+          const hid = "heading-" + i;
+          h.id = hid;
+          h.dataset.slug = slugifyHeading(h.textContent);
+          if (h.tagName === "H1" || h.tagName === "H2" || h.tagName === "H3") {
+            const a = document.createElement("a");
+            a.href = "#" + hid;
+            a.className = "toc-link toc-" + h.tagName.toLowerCase();
+            a.textContent = h.textContent;
+            a.dataset.heading = h.textContent.trim();
+            a.addEventListener("click", (e) => {
+              e.preventDefault();
+              tocListEl.querySelectorAll(".toc-link").forEach((link) => {
+                link.classList.toggle("active", link === a);
+              });
+              if (h.tagName === "H2" || h.tagName === "H3") {
+                activeHeadingText = h.textContent.replace(/`/g, "").trim();
+              } else {
+                activeHeadingText = resolveSidebarHeadingText(h);
+              }
+              scrollHeadingIntoArticle(h);
+              renderSidebar(true);
+              closeMobileDrawers();
+            });
+            tocListEl.appendChild(a);
+          }
+        });
+
+        // Prev / next follows the same top-to-bottom menu order.
+        const idx = docs.findIndex((d) => d.id === doc.id);
+        navFooterEl.innerHTML = "";
+        if (idx > 0) {
+          const prev = docs[idx - 1];
+          const prevCard = document.createElement("div");
+          prevCard.className = "nav-card";
+          prevCard.innerHTML = `<div class="nav-card-label">← メニューの一つ上</div><div class="nav-card-title">${escapeHtml(prev.title)}</div>`;
+          prevCard.addEventListener("click", () => selectDoc(prev.id));
+          navFooterEl.appendChild(prevCard);
+        }
+        if (idx !== -1 && idx < docs.length - 1) {
+          const next = docs[idx + 1];
+          const nextCard = document.createElement("div");
+          nextCard.className = "nav-card";
+          nextCard.style.textAlign = "right";
+          nextCard.innerHTML = `<div class="nav-card-label">メニューの一つ下 →</div><div class="nav-card-title">${escapeHtml(next.title)}</div>`;
+          nextCard.addEventListener("click", () => selectDoc(next.id));
+          navFooterEl.appendChild(nextCard);
+        }
+
+        if (window.GithubPreview) {
+          window.GithubPreview.decorate(docBodyEl);
+        }
+
+        renderSidebar(true);
+
+        if (targetAnchor) {
+          requestAnimationFrame(() => {
+            if (!scrollToHeadingInDoc(targetAnchor)) {
+              contentWrapperEl.scrollTop = 0;
+              renderSidebar(true);
+            }
+            syncTocToVisibleHeading();
+            syncChromeOffsets();
+          });
+        } else {
+          contentWrapperEl.scrollTop = 0;
+          syncTocToVisibleHeading();
+          syncChromeOffsets();
+        }
+        if (window.innerWidth <= 820) closeMobileDrawers();
+      }
+
+      // Universal Link Click Interceptor inside #docBody
+      docBodyEl.addEventListener("click", (e) => {
+        const anchorEl = e.target.closest("a");
+        if (!anchorEl) return;
+
+        const rawHref = anchorEl.getAttribute("href");
+        if (!rawHref) return;
+
+        const cleanedHref = rawHref.trim().replace(/^<+|>+$/g, "");
+
+        if (
+          /^https?:\/\//i.test(cleanedHref) &&
+          !cleanedHref.includes("hiro-s-2000.github.io/web_test_codility_countermeasure") &&
+          !cleanedHref.includes("github.com/hiro-s-2000/web_test_codility_countermeasure")
+        ) {
+          anchorEl.setAttribute("target", "_blank");
+          anchorEl.setAttribute("rel", "noopener");
+          return;
+        }
+
+        e.preventDefault();
+
+        if (cleanedHref.startsWith("#") && !cleanedHref.includes(".md") && !cleanedHref.includes(".kt")) {
+          const maybeDoc = resolveDocByLink(cleanedHref.slice(1));
+          if (maybeDoc) {
+            if (maybeDoc.type === "kotlin") {
+              openCodeModal(maybeDoc);
+            } else {
+              selectDoc(maybeDoc.id);
+            }
+            return;
+          }
+          scrollToHeadingInDoc(cleanedHref);
+          return;
+        }
+
+        let pathPart = cleanedHref;
+        let hashPart = null;
+        const hashIdx = cleanedHref.indexOf("#");
+        if (hashIdx !== -1) {
+          pathPart = cleanedHref.slice(0, hashIdx);
+          hashPart = cleanedHref.slice(hashIdx + 1);
+        }
+
+        if (!pathPart || pathPart.endsWith("web_test_codility_countermeasure/")) {
+          if (hashPart) {
+            handleHashNavigation(hashPart, true);
+          }
+          return;
+        }
+
+        const targetDoc = resolveDocByLink(pathPart);
+        if (targetDoc) {
+          if (targetDoc.type === "kotlin") {
+            openCodeModal(targetDoc);
+          } else {
+            selectDoc(targetDoc.id, true, hashPart);
+          }
+        } else if (hashPart) {
+          scrollToHeadingInDoc(hashPart);
+        }
+      });
+
+      function handleHashNavigation(rawHash, updateHistory = false) {
+        const clean = safeDecodeURI(String(rawHash || "").replace(/^#/, "")).trim();
+        if (!clean) {
+          if (docs.length) selectDoc(docs[0].id, false);
+          return;
+        }
+
+        let docPart = clean;
+        let anchorPart = null;
+        if (clean.includes("::")) {
+          const parts = clean.split("::");
+          docPart = parts[0];
+          anchorPart = parts.slice(1).join("::");
+        } else if (clean.includes("#")) {
+          const parts = clean.split("#");
+          docPart = parts[0];
+          anchorPart = parts.slice(1).join("#");
+        }
+
+        const matchedDoc = resolveDocByLink(docPart);
+        if (matchedDoc) {
+          if (matchedDoc.type === "kotlin") {
+            if (!activeId && docs.length) {
+              selectDoc(docs[0].id, false);
+            }
+            openCodeModal(matchedDoc);
+          } else {
+            closeCodeModal();
+            selectDoc(matchedDoc.id, updateHistory, anchorPart);
+          }
+        } else {
+          scrollToHeadingInDoc(clean);
+        }
+      }
+
+      contentWrapperEl.addEventListener("scroll", () => {
+        syncTocToVisibleHeading();
+      }, { passive: true });
+
+      let codeScrollFrame = 0;
+      let suppressCodeScrollSync = 0;
+      if (codeModalBodyEl) {
+        codeModalBodyEl.addEventListener("scroll", () => {
+          if (!currentModalDoc || suppressCodeScrollSync) return;
+          if (pinnedCodeScrollTop !== null) {
+            if (Math.abs(codeModalBodyEl.scrollTop - pinnedCodeScrollTop) <= 3) return;
+            pinnedCodeScrollTop = null;
+          }
+          if (codeScrollFrame) return;
+          codeScrollFrame = requestAnimationFrame(() => {
+            codeScrollFrame = 0;
+            if (!currentModalDoc || suppressCodeScrollSync) return;
+            if (pinnedCodeScrollTop !== null) {
+              if (Math.abs(codeModalBodyEl.scrollTop - pinnedCodeScrollTop) <= 3) return;
+              pinnedCodeScrollTop = null;
+            }
+            const heading = headingForCodeScroll();
+            if (!heading || heading.text === activeHeadingText) return;
+            activeHeadingText = heading.text;
+            markSidebarHeading(heading.text);
+          });
+        }, { passive: true });
+      }
+
+      window.addEventListener("popstate", () => {
+        handleHashNavigation(location.hash, false);
+      });
+      window.addEventListener("hashchange", () => {
+        handleHashNavigation(location.hash, false);
+      });
+
+      document.getElementById("brandHomeBtn").addEventListener("click", () => {
+        if (docs.length) selectDoc(docs[0].id, true);
+      });
+
+      // Filter Tabs
+      document.querySelectorAll(".filter-tab").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".filter-tab").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentCat = btn.dataset.cat;
+          renderSidebar();
+        });
+      });
+
+      // Search Input
+      searchInputEl.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        renderSidebar();
+      });
+
+      function closeMobileDrawers() {
+        sidebarEl.classList.remove("mobile-open");
+        document.getElementById("tocSidebar").classList.remove("mobile-open");
+        document.getElementById("drawerScrim").hidden = true;
+        document.getElementById("tocOpenBtn").setAttribute("aria-expanded", "false");
+        if (window.innerWidth <= 820) {
+          const active = document.activeElement;
+          if (active && active !== document.body && typeof active.blur === "function") active.blur();
+          pinDocumentScroll();
+        }
+      }
+      function pinDocumentScroll() {
+        if (window.scrollX || window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) {
+          window.scrollTo(0, 0);
+        }
+      }
+      function placeNavFooter() {
+        const foot = document.getElementById("navFooter");
+        const container = document.querySelector(".content-container");
+        const modal = document.getElementById("codeModalBackdrop");
+        if (!foot || !container || !modal) return;
+        if (window.innerWidth <= 820) {
+          if (foot.parentElement !== document.body) document.body.insertBefore(foot, modal);
+        } else if (foot.parentElement !== container) {
+          container.appendChild(foot);
+        }
+      }
+      function syncChromeOffsets() {
+        placeNavFooter();
+        const root = document.documentElement;
+        const phone = window.innerWidth <= 820;
+        const vv = window.visualViewport;
+        if (phone && vv) {
+          const offsetTop = Math.round(vv.offsetTop);
+          const appH = Math.round(vv.height);
+          const bottomGap = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
+          root.style.setProperty("--app-height", appH + "px");
+          root.style.setProperty("--vv-offset-top", offsetTop + "px");
+          root.style.setProperty("--vv-bottom-gap", bottomGap + "px");
+        } else {
+          root.style.removeProperty("--app-height");
+          root.style.removeProperty("--vv-offset-top");
+          root.style.removeProperty("--vv-bottom-gap");
+        }
+        const bar = document.querySelector(".topbar");
+        if (bar) root.style.setProperty("--mobile-topbar", bar.offsetHeight + "px");
+        const foot = document.getElementById("navFooter");
+        const footH = phone && foot && foot.offsetHeight ? foot.offsetHeight : 0;
+        root.style.setProperty("--mobile-footer", footH + "px");
+        if (phone) pinDocumentScroll();
+      }
+      function syncDrawerScrim() {
+        const tocOpen = document.getElementById("tocSidebar").classList.contains("mobile-open");
+        const menuOpen = sidebarEl.classList.contains("mobile-open");
+        document.getElementById("drawerScrim").hidden = !(tocOpen || menuOpen);
+        document.getElementById("tocOpenBtn").setAttribute("aria-expanded", tocOpen ? "true" : "false");
+      }
+      // Sidebar Toggle (works on both desktop and mobile)
+      document.getElementById("menuBtn").addEventListener("click", () => {
+        if (window.innerWidth <= 820) {
+          document.getElementById("tocSidebar").classList.remove("mobile-open");
+          sidebarEl.classList.toggle("mobile-open");
+          syncDrawerScrim();
+        } else {
+          sidebarEl.classList.toggle("collapsed");
+        }
+      });
+      document.getElementById("tocOpenBtn").addEventListener("click", () => {
+        sidebarEl.classList.remove("mobile-open");
+        document.getElementById("tocSidebar").classList.toggle("mobile-open");
+        syncDrawerScrim();
+      });
+      document.getElementById("drawerScrim").addEventListener("click", closeMobileDrawers);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && document.getElementById("tocSidebar").classList.contains("mobile-open")) {
+          closeMobileDrawers();
+        }
+      });
+
+      let chromeFrame = 0;
+      function scheduleChromeSync() {
+        if (chromeFrame) return;
+        chromeFrame = requestAnimationFrame(() => {
+          chromeFrame = 0;
+          syncChromeOffsets();
+        });
+      }
+      syncChromeOffsets();
+      window.addEventListener("resize", () => {
+        scheduleChromeSync();
+        if (window.innerWidth > 820) sidebarEl.classList.remove("mobile-open");
+        syncDrawerScrim();
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", scheduleChromeSync);
+        window.visualViewport.addEventListener("scroll", scheduleChromeSync);
+      }
+
+      // Theme Toggle
+      const themeBtn = document.getElementById("themeBtn");
+      const hljsTheme = document.getElementById("hljs-theme");
+      themeBtn.addEventListener("click", () => {
+        const htmlEl = document.documentElement;
+        const nextTheme = htmlEl.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        htmlEl.setAttribute("data-theme", nextTheme);
+        themeBtn.textContent = nextTheme === "dark" ? "🌙 外観切替" : "☀️ 外観切替";
+        hljsTheme.href = nextTheme === "dark"
+          ? "./vendor/highlight/github-dark.min.css"
+          : "./vendor/highlight/github.min.css";
+        const gfmTheme = document.getElementById("gfm-theme");
+        if (gfmTheme) {
+          gfmTheme.href = nextTheme === "dark"
+            ? "./vendor/github-markdown/github-markdown-dark.min.css"
+            : "./vendor/github-markdown/github-markdown-light.min.css";
+        }
+        if (activeId) {
+          selectDoc(activeId, false);
+        }
+      });
+
+      // 200-Minute Exam Timer
+      let remainingSec = 200 * 60;
+      let timerInterval = null;
+      const timerDisplay = document.getElementById("timerDisplay");
+      const timerStartBtn = document.getElementById("timerStartBtn");
+      const timerResetBtn = document.getElementById("timerResetBtn");
+
+      function formatTime(sec) {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+      }
+
+      timerStartBtn.addEventListener("click", () => {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          timerStartBtn.textContent = "再開";
+        } else {
+          timerStartBtn.textContent = "一時停止";
+          timerInterval = setInterval(() => {
+            if (remainingSec > 0) {
+              remainingSec--;
+              timerDisplay.textContent = formatTime(remainingSec);
+            } else {
+              clearInterval(timerInterval);
+              timerInterval = null;
+              alert("200分が経過しました！試験終了です。");
+            }
+          }, 1000);
+        }
+      });
+
+      timerResetBtn.addEventListener("click", () => {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        remainingSec = 200 * 60;
+        timerDisplay.textContent = formatTime(remainingSec);
+        timerStartBtn.textContent = "開始";
+      });
+
+      // Initial Load from Hash or First Doc
+      if (location.hash && location.hash.length > 1) {
+        if (docs.length) {
+          selectDoc(docs[0].id, false);
+        }
+        handleHashNavigation(location.hash, false);
+      } else if (docs.length) {
+        selectDoc(docs[0].id, false);
+      }
+
+      if ("serviceWorker" in navigator && location.protocol !== "file:") {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>
