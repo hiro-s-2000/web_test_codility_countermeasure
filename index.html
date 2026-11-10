@@ -1234,6 +1234,9 @@
       let activeId = docs.length ? docs[0].id : null;
       let activeHeadingText = "";
       let activeHeadingIndex = -1;
+      let pinnedArticleHeading = null;
+      let headingNavigationPending = false;
+      let headingNavigationToken = 0;
       let currentModalDoc = null;
       let pinnedCodeScrollTop = null;
 
@@ -1534,6 +1537,9 @@
       // Open Code Modal Dialog for a .kt file and sync sidebar selection
       function openCodeModal(doc, headingText, headingIndex = -1) {
         if (!doc) return;
+        headingNavigationToken += 1;
+        headingNavigationPending = false;
+        pinnedArticleHeading = null;
         currentModalDoc = doc;
         syncFilterForDoc(doc);
         Object.keys(openCategories).forEach((k) => {
@@ -1675,7 +1681,7 @@
         return cleanText(matchedEl);
       }
 
-      function scrollHeadingIntoArticle(el) {
+      function scrollHeadingIntoArticle(el, headingIndex = -1) {
         if (!el || !contentWrapperEl) return;
         const cRect = contentWrapperEl.getBoundingClientRect();
         const eRect = el.getBoundingClientRect();
@@ -1686,10 +1692,9 @@
         }
         const next = contentWrapperEl.scrollTop + (eRect.top - cRect.top) - stickyH - 8;
         const maxTop = Math.max(0, contentWrapperEl.scrollHeight - contentWrapperEl.clientHeight);
-        contentWrapperEl.scrollTo({
-          top: Math.min(maxTop, Math.max(0, next)),
-          behavior: "smooth"
-        });
+        const top = Math.min(maxTop, Math.max(0, next));
+        pinnedArticleHeading = headingIndex >= 0 ? { docId: activeId, index: headingIndex, top } : null;
+        contentWrapperEl.scrollTo({ top, behavior: "instant" });
         pinDocumentScroll();
         window.setTimeout(pinDocumentScroll, 400);
         window.setTimeout(pinDocumentScroll, 800);
@@ -1715,6 +1720,8 @@
         );
 
         if (matched) {
+          headingNavigationToken += 1;
+          headingNavigationPending = false;
           activeHeadingText = resolveSidebarHeadingText(matched);
           activeHeadingIndex = subHeadings.indexOf(matched);
           const activeDoc = docs.find((d) => d.id === activeId);
@@ -1725,12 +1732,13 @@
             });
             openSubDocs[activeDoc.id] = true;
           }
-          scrollHeadingIntoArticle(matched);
+          scrollHeadingIntoArticle(matched, activeHeadingIndex);
           matched.classList.remove("heading-flash");
           void matched.offsetWidth;
           matched.classList.add("heading-flash");
           renderSidebar(true);
           renderNavFooter();
+          syncTocToVisibleHeading();
           return true;
         }
         return false;
@@ -1739,18 +1747,26 @@
       function visibleTocLink() {
         const links = Array.from(tocListEl.querySelectorAll(".toc-link"));
         if (!links.length) return null;
+        if (pinnedArticleHeading && pinnedArticleHeading.docId === activeId &&
+            Math.abs(contentWrapperEl.scrollTop - pinnedArticleHeading.top) <= 2) {
+          const pinnedHeading = docBodyEl.querySelectorAll("h2, h3")[pinnedArticleHeading.index];
+          const pinnedLink = pinnedHeading && links.find((link) => link.getAttribute("href") === "#" + pinnedHeading.id);
+          if (pinnedLink) return pinnedLink;
+        }
         const maxScroll = contentWrapperEl.scrollHeight - contentWrapperEl.clientHeight;
         if (maxScroll > 0 && contentWrapperEl.scrollTop >= maxScroll - 2) {
           const lastSubHeading = links.filter((link) => link.classList.contains("toc-h2") || link.classList.contains("toc-h3")).pop();
           if (lastSubHeading) return lastSubHeading;
         }
         const rootTop = contentWrapperEl.getBoundingClientRect().top;
+        const bar = contentWrapperEl.querySelector(".doc-meta-bar");
+        const threshold = window.innerWidth <= 1150 && bar ? bar.offsetHeight + 10 : 10;
         let current = links[0];
         links.forEach((a) => {
           const id = (a.getAttribute("href") || "").slice(1);
           if (!id) return;
           const heading = docBodyEl.querySelector("#" + CSS.escape(id));
-          if (heading && heading.getBoundingClientRect().top - rootTop <= 32) {
+          if (heading && heading.getBoundingClientRect().top - rootTop <= threshold) {
             current = a;
           }
         });
@@ -2061,6 +2077,10 @@
           return;
         }
 
+        const navigationToken = ++headingNavigationToken;
+        headingNavigationPending = !!targetAnchor;
+        pinnedArticleHeading = null;
+
         currentModalDoc = null;
         codeModalBackdrop.classList.remove("open");
         syncFilterForDoc(doc);
@@ -2190,8 +2210,15 @@
                 activeHeadingText = resolveSidebarHeadingText(h);
                 activeHeadingIndex = -1;
               }
-              scrollHeadingIntoArticle(h);
-              renderSidebar(true);
+              if (activeHeadingIndex >= 0) {
+                scrollToHeadingInDoc(activeHeadingText, activeHeadingIndex);
+              } else {
+                headingNavigationToken += 1;
+                headingNavigationPending = false;
+                scrollHeadingIntoArticle(h);
+                renderSidebar(true);
+                renderNavFooter();
+              }
               closeMobileDrawers();
             });
             tocListEl.appendChild(a);
@@ -2208,7 +2235,9 @@
 
         if (targetAnchor) {
           requestAnimationFrame(() => {
+            if (navigationToken !== headingNavigationToken || activeId !== doc.id) return;
             if (!scrollToHeadingInDoc(targetAnchor, targetHeadingIndex)) {
+              headingNavigationPending = false;
               contentWrapperEl.scrollTop = 0;
               renderSidebar(true);
             }
@@ -2364,6 +2393,11 @@
       }
 
       contentWrapperEl.addEventListener("scroll", () => {
+        if (headingNavigationPending) return;
+        if (pinnedArticleHeading && (pinnedArticleHeading.docId !== activeId ||
+            Math.abs(contentWrapperEl.scrollTop - pinnedArticleHeading.top) > 2)) {
+          pinnedArticleHeading = null;
+        }
         syncTocToVisibleHeading();
       }, { passive: true });
 
