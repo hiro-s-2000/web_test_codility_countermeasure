@@ -109,6 +109,9 @@
     .prompt { font-size: 17px; }
     .choice, .run-btn, .text-btn { display: block; width: 100%; text-align: left; margin-top: 8px; }
     .run-btn { text-align: center; border-color: var(--accent); }
+    .run-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .run-bar .run-btn { width: auto; }
+    .vars { margin: 8px 0; padding-left: 1.2em; }
     .text-btn { width: auto; margin-top: 10px; }
     button:disabled { opacity: 0.55; cursor: default; }
     .feedback { padding: 8px 10px; border-radius: 6px; }
@@ -123,15 +126,42 @@
       background: var(--code);
       min-height: 220px;
     }
+    .picker { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+    .picker select {
+      font: inherit;
+      font-size: 16px;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      min-height: 44px;
+      max-width: 62vw;
+    }
     .gutter {
       margin: 0;
-      padding: 10px 8px;
+      padding: 10px 0;
       color: var(--muted);
       background: var(--panel-2);
-      text-align: right;
       user-select: none;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
+    .gutter button.line-no {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      line-height: 1.45;
+      height: calc(16px * 1.45);
+      min-height: 0;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      text-align: right;
+    }
+    .gutter button.line-no.is-break { color: var(--bad); }
+    .gutter button.line-no.is-now { background: rgba(47, 129, 247, 0.35); }
     .code {
       margin: 0;
       padding: 10px;
@@ -167,13 +197,17 @@
 <body>
   <header>
     <a class="back" href="./index.html">ポータルへ戻る</a>
-    <div id="taskButtons"></div>
+    <label class="picker">問題
+      <select id="taskPick" aria-label="問題を選ぶ"></select>
+    </label>
     <span class="spacer"></span>
     <button type="button" id="langJa">日本語</button>
     <button type="button" id="langEn">English</button>
     <button type="button" id="themeBtn">明るい画面</button>
   </header>
   <main id="app"></main>
+  <script src="./kotlite.js"></script>
+  <script src="./reading-lab-extra.js"></script>
   <script src="./reading-lab.js"></script>
 </body>
 </html>

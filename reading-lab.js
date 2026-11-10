@@ -1,13 +1,16 @@
 /* Reading lab for the Codility study portal.
    Statements are original and follow Codility's layout.
    They are not copies of Codility's problem text.
-   This page does not compile or run Kotlin. */
+   After the reading checks, Kotlite runs fun solution in the browser.
+   That runner is a Kotlin subset. It is not the Kotlin compiler. */
 (function (root) {
   "use strict";
 
   var tasks = [
     {
       id: "unpaired",
+      group: "例題",
+      runnable: true,
       title: "対にならない値",
       minutes: 15,
       signature: "fun solution(A: IntArray): Int",
@@ -107,6 +110,12 @@
         { id: "c3", prompt: "A = [1, 2, 1]", answer: "2", because: "1 は 2 回、2 は 1 回です。" },
         { id: "c4", prompt: "A = [8, 8, 8]", answer: "8", because: "8 は 3 回で、奇数回の値です。" }
       ],
+      tests: [
+        { name: "4,4,2", args: [{ ia: [4, 4, 2] }], expect: 2, because: "4 は 2 回、2 は 1 回です。" },
+        { name: "7", args: [{ ia: [7] }], expect: 7, because: "長さ 1 の配列は、その値を返します。" },
+        { name: "1,2,1", args: [{ ia: [1, 2, 1] }], expect: 2, because: "1 は 2 回、2 は 1 回です。" },
+        { name: "8,8,8", args: [{ ia: [8, 8, 8] }], expect: 8, because: "8 は 3 回で、奇数回の値です。" }
+      ],
       skeleton: [
         "// 空なら -1。1 個なら A[0]",
         "// 偶数回の値は打ち消し、残った値が答え",
@@ -115,6 +124,8 @@
     },
     {
       id: "passing",
+      group: "例題",
+      runnable: true,
       title: "すれ違う車",
       minutes: 15,
       signature: "fun solution(A: IntArray): Int",
@@ -216,6 +227,12 @@
         { id: "c3", prompt: "A = [1, 1, 0]", answer: "0", because: "東行きは一番東にいるので、西側の西行きとはすれ違いません。" },
         { id: "c4", prompt: "A = [0, 1, 1]", answer: "2", because: "東行き 1 台が、東側の西行き 2 台とすれ違います。" }
       ],
+      tests: [
+        { name: "0,1", args: [{ ia: [0, 1] }], expect: 1, because: "東行きのあとに西行きが 1 台います。" },
+        { name: "0,0,1", args: [{ ia: [0, 0, 1] }], expect: 2, because: "西行き 1 台が、西側の東行き 2 台とすれ違います。" },
+        { name: "1,1,0", args: [{ ia: [1, 1, 0] }], expect: 0, because: "東行きは一番東にいるので、すれ違いません。" },
+        { name: "0,1,1", args: [{ ia: [0, 1, 1] }], expect: 2, because: "東行き 1 台が、東側の西行き 2 台とすれ違います。" }
+      ],
       skeleton: [
         "// 0 を見るたびに cnt を 1 増やす",
         "// 1 を見たら ans に cnt を足す",
@@ -224,6 +241,8 @@
     },
     {
       id: "window",
+      group: "例題",
+      runnable: true,
       title: "和が届く最短の長さ",
       minutes: 20,
       signature: "fun solution(K: Int, A: IntArray): Int",
@@ -323,6 +342,12 @@
         { id: "c3", prompt: "A = [1, 2, 3]、K = 6", answer: "3", because: "全体の和が 6 で、それより短い連続部分では届きません。" },
         { id: "c4", prompt: "A = [1, 4, 4]、K = 8", answer: "2", because: "隣り合う 4 と 4 の長さ 2 で和が 8 です。" }
       ],
+      tests: [
+        { name: "届かない", args: [{ n: 3 }, { ia: [1, 1] }], expect: 0, because: "連続部分の和は最大でも 2 で、3 に届きません。" },
+        { name: "1個", args: [{ n: 5 }, { ia: [5] }], expect: 1, because: "長さ 1 の [5] で和が 5 です。" },
+        { name: "全体", args: [{ n: 6 }, { ia: [1, 2, 3] }], expect: 3, because: "全体の和が 6 で、それより短い連続部分では届きません。" },
+        { name: "隣", args: [{ n: 8 }, { ia: [1, 4, 4] }], expect: 2, because: "隣り合う 4 と 4 の長さ 2 で和が 8 です。" }
+      ],
       skeleton: [
         "// 右端を伸ばし、和が K 以上のあいだ左端を縮める",
         "// そのときの長さの最小を残す",
@@ -330,6 +355,32 @@
       ]
     }
   ];
+
+  function normalizeTask(task) {
+    if (!task.text) {
+      task.text = {
+        ja: {
+          sentences: task.sentences || [],
+          example: task.example || "",
+          assumptions: task.assumptions || []
+        }
+      };
+    }
+    if (!task.group) task.group = "練習";
+    if (task.runnable == null) task.runnable = true;
+    if (!task.tests) task.tests = [];
+    (task.reading || []).forEach(function (q) {
+      if (!q.hit) q.hit = "強調した文が、その答えの根拠です。";
+      if (!q.why) q.why = "強調した文と、選んだ答えが食い違っています。";
+      if (!q.focus) q.focus = [];
+    });
+    return task;
+  }
+
+  tasks.forEach(normalizeTask);
+  (root.LAB_EXTRA || []).forEach(function (raw) {
+    tasks.push(normalizeTask(raw));
+  });
 
   function normalizeAnswer(value) {
     return String(value == null ? "" : value)
@@ -389,6 +440,7 @@
         if (!right.ok) errors.push(task.id + " right rejected " + q.id);
         ["ja", "en"].forEach(function (lang) {
           var pack = task.text[lang];
+          if (!pack) return;
           var ids = {};
           pack.sentences.forEach(function (s) { ids[s.id] = true; });
           pack.assumptions.forEach(function (s) { ids[s.id] = true; });
@@ -397,19 +449,21 @@
           });
         });
       });
-      var answers = {};
-      task.imagine.forEach(function (c) { answers[c.id] = c.answer; });
-      if (!gradeImagine(task, answers).ok) errors.push(task.id + " imagine failed");
-      var badMap = {};
-      task.imagine.forEach(function (c) { badMap[c.id] = c.answer; });
-      badMap[task.imagine[0].id] = task.imagine[0].answer === "0" ? "1" : "0";
-      if (gradeImagine(task, badMap).ok) errors.push(task.id + " bad imagine passed");
-      var wide = {};
-      task.imagine.forEach(function (c) { wide[c.id] = c.answer; });
-      wide[task.imagine[0].id] = String(task.imagine[0].answer).replace(/\d/g, function (d) {
-        return String.fromCharCode(d.charCodeAt(0) + 0xfee0);
-      });
-      if (!gradeImagine(task, wide).ok) errors.push(task.id + " fullwidth rejected");
+      if (task.imagine && task.imagine.length) {
+        var answers = {};
+        task.imagine.forEach(function (c) { answers[c.id] = c.answer; });
+        if (!gradeImagine(task, answers).ok) errors.push(task.id + " imagine failed");
+        var badMap = {};
+        task.imagine.forEach(function (c) { badMap[c.id] = c.answer; });
+        badMap[task.imagine[0].id] = task.imagine[0].answer === "0" ? "1" : "0";
+        if (gradeImagine(task, badMap).ok) errors.push(task.id + " bad imagine passed");
+        var wide = {};
+        task.imagine.forEach(function (c) { wide[c.id] = c.answer; });
+        wide[task.imagine[0].id] = String(task.imagine[0].answer).replace(/\d/g, function (d) {
+          return String.fromCharCode(d.charCodeAt(0) + 0xfee0);
+        });
+        if (!gradeImagine(task, wide).ok) errors.push(task.id + " fullwidth rejected");
+      }
     });
     return errors;
   }
@@ -426,17 +480,17 @@
 
   if (typeof document === "undefined") return;
 
-  var STORE = "reading-lab-v1";
+  var STORE = "reading-lab-v2";
   var stepTimer = 0;
 
   function emptyState() {
-    return { taskId: tasks[0].id, lang: "ja", theme: "dark", solved: {}, code: {}, imagine: {} };
+    return { taskId: tasks[0].id, lang: "ja", theme: "dark", solved: {}, code: {}, imagine: {}, breaks: {} };
   }
 
   function loadState() {
     var state = emptyState();
     try {
-      var raw = localStorage.getItem(STORE);
+      var raw = localStorage.getItem(STORE) || localStorage.getItem("reading-lab-v1");
       if (!raw) return state;
       var data = JSON.parse(raw);
       if (!data || typeof data !== "object") return state;
@@ -446,6 +500,7 @@
       if (data.solved && typeof data.solved === "object") state.solved = data.solved;
       if (data.code && typeof data.code === "object") state.code = data.code;
       if (data.imagine && typeof data.imagine === "object") state.imagine = data.imagine;
+      if (data.breaks && typeof data.breaks === "object") state.breaks = data.breaks;
     } catch (e) {
       return emptyState();
     }
@@ -518,11 +573,12 @@
   function boot() {
     var state = loadState();
     var feedback = null;
-    var imagineReport = null;
+    var runView = null;
+    var debugSession = null;
     document.documentElement.setAttribute("data-theme", state.theme);
 
     var app = document.getElementById("app");
-    var taskButtons = document.getElementById("taskButtons");
+    var taskPick = document.getElementById("taskPick");
     var langJa = document.getElementById("langJa");
     var langEn = document.getElementById("langEn");
     var themeBtn = document.getElementById("themeBtn");
@@ -532,21 +588,33 @@
     }
 
     function renderChrome() {
-      taskButtons.textContent = "";
-      tasks.forEach(function (task, index) {
-        var btn = el("button", "task-btn" + (task.id === state.taskId ? " is-on" : ""), (index + 1) + ". " + task.title);
-        btn.type = "button";
-        btn.addEventListener("click", function () {
-          feedback = null;
-          imagineReport = null;
-          state.taskId = task.id;
-          persist();
-          render();
-        });
-        taskButtons.appendChild(btn);
+      var groups = [];
+      var byName = {};
+      tasks.forEach(function (task) {
+        var name = task.group || "練習";
+        if (!byName[name]) {
+          byName[name] = [];
+          groups.push(name);
+        }
+        byName[name].push(task);
       });
-      langJa.classList.toggle("is-on", state.lang === "ja");
-      langEn.classList.toggle("is-on", state.lang === "en");
+      taskPick.textContent = "";
+      groups.forEach(function (name) {
+        var group = document.createElement("optgroup");
+        group.label = name;
+        byName[name].forEach(function (task) {
+          var option = document.createElement("option");
+          option.value = task.id;
+          option.textContent = task.title;
+          if (task.id === state.taskId) option.selected = true;
+          group.appendChild(option);
+        });
+        taskPick.appendChild(group);
+      });
+      var current = taskById(state.taskId);
+      langEn.disabled = !current.text.en;
+      langJa.classList.toggle("is-on", state.lang === "ja" || !current.text.en);
+      langEn.classList.toggle("is-on", state.lang === "en" && !!current.text.en);
       themeBtn.textContent = state.theme === "dark" ? "明るい画面" : "暗い画面";
     }
 
@@ -653,29 +721,63 @@
       }
     }
 
+    function currentCode(task) {
+      return Object.prototype.hasOwnProperty.call(state.code, task.id) ? state.code[task.id] : task.starter;
+    }
+
+    function breakList(task) {
+      var list = state.breaks[task.id];
+      return Array.isArray(list) ? list : [];
+    }
+
+    function breakMap(task) {
+      var map = {};
+      breakList(task).forEach(function (n) { map[n] = true; });
+      return map;
+    }
+
     function renderEditor(task) {
       var card = el("section", "card");
       var done = readingDone(state, task);
-      card.appendChild(el("h2", null, "2. 想像したコードを書く"));
+      var now = runView && runView.paused ? runView.paused.line : 0;
+      card.appendChild(el("h2", null, "2. コードを書いて、止めて、見る"));
       card.appendChild(el("p", "lead", done
-        ? "署名だけ入っています。中身は自分で打ちます。このページは書いた Kotlin を実行しません。文章はブラウザの中だけに残ります。"
+        ? "署名だけ入っています。中身は自分で打ちます。行番号を押すとその行で止まります。実行はブラウザの中だけで、Int は 32 ビットで一周します。class と data class は動きません。"
         : "読解の 4 問が終わるまで、ここには打ちません。"));
       var wrap = el("div", "editor");
-      var gutter = el("pre", "gutter", "1");
+      var gutter = el("div", "gutter");
       var area = document.createElement("textarea");
       area.className = "code";
       area.spellcheck = false;
       area.autocomplete = "off";
       area.setAttribute("aria-label", "Kotlin のエディタ");
-      var stored = Object.prototype.hasOwnProperty.call(state.code, task.id) ? state.code[task.id] : task.starter;
-      area.value = stored;
+      area.value = currentCode(task);
       area.disabled = !done;
       function syncGutter() {
         var n = Math.max(1, area.value.split("\n").length);
-        var lines = [];
+        var marks = breakMap(task);
+        gutter.textContent = "";
         var i;
-        for (i = 1; i <= n; i += 1) lines.push(String(i));
-        gutter.textContent = lines.join("\n");
+        for (i = 1; i <= n; i += 1) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "line-no" + (marks[i] ? " is-break" : "") + (i === now ? " is-now" : "");
+          btn.textContent = String(i);
+          btn.disabled = !done;
+          btn.setAttribute("aria-label", i + "行で止める");
+          (function (line) {
+            btn.addEventListener("click", function () {
+              var list = breakList(task).slice();
+              var at = list.indexOf(line);
+              if (at === -1) list.push(line);
+              else list.splice(at, 1);
+              state.breaks[task.id] = list;
+              persist();
+              syncGutter();
+            });
+          })(i);
+          gutter.appendChild(btn);
+        }
         gutter.scrollTop = area.scrollTop;
       }
       area.addEventListener("input", function () {
@@ -708,6 +810,8 @@
       reset.addEventListener("click", function () {
         if (!window.confirm("この問題のエディタを、署名だけの状態に戻します。")) return;
         state.code[task.id] = task.starter;
+        debugSession = null;
+        runView = null;
         persist();
         render();
       });
@@ -715,63 +819,158 @@
       return card;
     }
 
-    function renderImagine(task) {
+    function shown(value) {
+      if (typeof value === "string") return JSON.stringify(value);
+      if (Array.isArray(value)) return JSON.stringify(value);
+      return String(value);
+    }
+
+    function takeResult(result, queue) {
+      var rows = runView && runView.rows ? runView.rows.slice() : [];
+      rows = rows.concat(result.results || []);
+      if (result.paused) {
+        debugSession = result;
+        debugSession.queue = queue;
+        runView = { error: "", rows: rows, paused: result.paused, output: result.paused.output || [] };
+        return;
+      }
+      debugSession = null;
+      runView = { error: "", rows: rows, paused: null, output: (result.ctx && result.ctx.output) || [] };
+    }
+
+    function failRun(error) {
+      debugSession = null;
+      runView = {
+        error: (error && error.line ? error.line + "行: " : "") + (error && error.message ? error.message : "実行できませんでした"),
+        rows: runView && runView.rows ? runView.rows : [],
+        paused: null,
+        output: []
+      };
+    }
+
+    function runQueue(queue, mode) {
+      var task = taskById(state.taskId);
+      if (!queue.length) return;
+      try {
+        var result = root.Kotlite.runTests(currentCode(task), queue, {
+          breakpoints: breakMap(task),
+          mode: mode === "step" ? "step" : "run"
+        });
+        var rest = result.paused ? queue.slice((result.results || []).length + 1) : [];
+        takeResult(result, rest);
+      } catch (error) {
+        failRun(error);
+      }
+    }
+
+    function resumeRun(mode) {
+      var task = taskById(state.taskId);
+      if (!debugSession) return;
+      var queue = debugSession.queue || [];
+      try {
+        var result = root.Kotlite.resume(debugSession, mode === "step" ? "step" : "continue", breakMap(task));
+        if (result.paused) {
+          debugSession = result;
+          debugSession.queue = queue;
+          runView.paused = result.paused;
+          runView.output = result.paused.output || [];
+          return;
+        }
+        var row = result.results[result.results.length - 1];
+        runView.rows = (runView.rows || []).concat([row]);
+        runView.paused = null;
+        runView.output = [];
+        debugSession = null;
+        if (queue.length) runQueue(queue, mode === "step" ? "step" : "run");
+      } catch (error) {
+        failRun(error);
+      }
+    }
+
+    function renderRun(task) {
       var card = el("section", "card");
       var done = readingDone(state, task);
-      card.appendChild(el("h2", null, "3. 想像した返り値"));
-      card.appendChild(el("p", "lead", "Codility の Run に当たる欄です。入力に対して関数が返す数を、自分で書きます。Kotlin は実行しません。"));
+      card.appendChild(el("h2", null, "3. サンプルを実行する"));
+      if (!task.runnable) {
+        card.appendChild(el("p", "lead", "この問題は class を使うので、このページの実行機では動きません。問題文の読解だけ行い、実装はポータルのコードを開いて読んでください。"));
+        var blocked = document.createElement("a");
+        blocked.className = "portal-link";
+        blocked.href = "./index.html#" + encodeURI(task.portalPath);
+        blocked.textContent = "ポータルの該当ページを開く";
+        card.appendChild(blocked);
+        return card;
+      }
+      card.appendChild(el("p", "lead", "サンプル入力で fun solution を動かします。止めた行の変数が下に出ます。合わない行には、問題文が求める値が出ます。"));
       if (!done) {
         card.appendChild(el("p", "wait-note", "読解のあとで開きます。"));
         return card;
       }
-      var saved = state.imagine[task.id] && typeof state.imagine[task.id] === "object" ? state.imagine[task.id] : {};
-      var inputs = {};
-      task.imagine.forEach(function (item) {
-        var row = el("label", "imagine-row");
-        row.appendChild(el("span", "imagine-prompt", item.prompt));
-        var input = document.createElement("input");
-        input.type = "text";
-        input.inputMode = "numeric";
-        input.autocomplete = "off";
-        input.spellcheck = false;
-        input.value = saved[item.id] == null ? "" : String(saved[item.id]);
-        input.setAttribute("aria-label", item.prompt);
-        inputs[item.id] = input;
-        row.appendChild(input);
-        card.appendChild(row);
-      });
-      var run = el("button", "run-btn", "想像した返り値を採点");
+      if (!root.Kotlite) {
+        card.appendChild(el("p", "feedback is-bad", "実行プログラムが読み込めていません。"));
+        return card;
+      }
+      var bar = el("div", "run-bar");
+      var run = el("button", "run-btn", "サンプルを実行");
       run.type = "button";
+      var step = el("button", "run-btn", "1行進む");
+      step.type = "button";
+      var cont = el("button", "run-btn", "次の停止まで");
+      cont.type = "button";
+      cont.disabled = !debugSession;
       run.addEventListener("click", function () {
-        var answers = {};
-        task.imagine.forEach(function (item) {
-          answers[item.id] = inputs[item.id].value;
-        });
-        state.imagine[task.id] = answers;
-        persist();
-        imagineReport = gradeImagine(task, answers);
+        runView = { error: "", rows: [], paused: null, output: [] };
+        debugSession = null;
+        runQueue(task.tests || [], "run");
         render();
       });
-      card.appendChild(run);
-      if (imagineReport) {
+      step.addEventListener("click", function () {
+        if (!debugSession) {
+          runView = { error: "", rows: [], paused: null, output: [] };
+          runQueue(task.tests || [], "step");
+        } else {
+          resumeRun("step");
+        }
+        render();
+      });
+      cont.addEventListener("click", function () {
+        resumeRun("continue");
+        render();
+      });
+      bar.appendChild(run);
+      bar.appendChild(step);
+      bar.appendChild(cont);
+      card.appendChild(bar);
+      if (runView && runView.error) card.appendChild(el("p", "feedback is-bad", runView.error));
+      if (runView && runView.paused) {
+        var pause = el("p", "feedback is-ok", runView.paused.line + "行で止まっています。テスト「" + (runView.paused.test || "") + "」。");
+        card.appendChild(pause);
+        var vars = el("ul", "vars");
+        (runView.paused.vars || []).forEach(function (row) {
+          vars.appendChild(el("li", null, row.name + " = " + row.value));
+        });
+        if (!(runView.paused.vars || []).length) vars.appendChild(el("li", null, "（この行の手前では、ローカル変数はまだありません）"));
+        card.appendChild(vars);
+      }
+      if (runView && runView.output && runView.output.length) {
+        card.appendChild(el("pre", "example", runView.output.join("\n")));
+      }
+      if (runView && runView.rows && runView.rows.length) {
         var box = el("div", "report");
-        imagineReport.rows.forEach(function (row) {
+        runView.rows.forEach(function (row) {
           var line = el("p", row.ok ? "report-line is-ok" : "report-line is-bad");
-          if (row.empty) {
-            line.textContent = row.prompt + " … まだ空です。";
-          } else if (row.ok) {
-            line.textContent = row.prompt + " … " + row.actual + " で合っています。";
-          } else {
-            line.textContent = row.prompt + " … 書いた値は " + row.actual + "、問題文どおりなら " + row.expected + "。" + row.because;
-          }
+          if (row.ok) line.textContent = row.name + " … 返り値 " + shown(row.actual) + " で合っています。";
+          else line.textContent = row.name + " … 動いた結果は " + shown(row.actual) + "、問題文どおりなら " + shown(row.expected) + "。" + (row.message || "");
           box.appendChild(line);
         });
         card.appendChild(box);
-        if (imagineReport.ok) {
-          card.appendChild(el("p", "ok-note", "4 つとも、問題文どおりの返り値です。"));
-          card.appendChild(el("h3", null, "見比べる骨格"));
-          card.appendChild(el("p", "lead", "エディタへは入れません。必要なら、自分のコードへ打ち直してください。"));
-          card.appendChild(el("pre", "skeleton", task.skeleton.join("\n")));
+        var allOk = task.tests && task.tests.length && runView.rows.length === task.tests.length && runView.rows.every(function (row) { return row.ok; });
+        if (allOk && !runView.paused) {
+          card.appendChild(el("p", "ok-note", "サンプルは全部、問題文どおりの返り値です。"));
+          if (task.skeleton && task.skeleton.length) {
+            card.appendChild(el("h3", null, "見比べる骨格"));
+            card.appendChild(el("p", "lead", "エディタへは入れません。必要なら、自分のコードへ打ち直してください。"));
+            card.appendChild(el("pre", "skeleton", task.skeleton.join("\n")));
+          }
           var link = document.createElement("a");
           link.className = "portal-link";
           link.href = "./index.html#" + encodeURI(task.portalPath);
@@ -785,16 +984,16 @@
     function render() {
       window.clearTimeout(stepTimer);
       var task = taskById(state.taskId);
-      var pack = task.text[state.lang];
+      var pack = task.text[state.lang] || task.text.ja;
       renderChrome();
       app.textContent = "";
       var statement = renderStatement(task, pack);
       var work = el("div", "work");
-      work.appendChild(el("p", "how", "左が問題文です。先に右の 4 問へ答え、そのあとエディタに書きます。"));
+      work.appendChild(el("p", "how", "左が問題文です。先に右の 4 問へ答え、そのあとエディタに書いてサンプルを実行します。"));
       var readingCard = renderReading(task);
       work.appendChild(readingCard);
       work.appendChild(renderEditor(task));
-      work.appendChild(renderImagine(task));
+      work.appendChild(renderRun(task));
       app.appendChild(statement);
       app.appendChild(work);
       if (feedback) markFocus(statement, focusIdsForCurrent(task), feedback.ok ? "hit" : "miss");
@@ -816,6 +1015,15 @@
       return q.focus;
     }
 
+    taskPick.addEventListener("change", function () {
+      feedback = null;
+      runView = null;
+      debugSession = null;
+      state.taskId = taskPick.value;
+      if (!taskById(state.taskId).text.en) state.lang = "ja";
+      persist();
+      render();
+    });
     langJa.addEventListener("click", function () {
       state.lang = "ja";
       persist();
