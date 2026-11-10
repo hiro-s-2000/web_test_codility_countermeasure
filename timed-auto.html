@@ -30,15 +30,53 @@
       flex-direction: column;
     }
     header {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
       gap: 8px;
-      align-items: center;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       padding: 6px 12px;
       border-bottom: 1px solid var(--line);
       background: #1b1b1b;
     }
-    .top-left, .top-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .exam-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+    .task-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+    .task-field {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+      flex: 1 1 16rem;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .task-field select {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .task-bar button {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 100%;
+      white-space: normal;
+    }
+    .top-left, .top-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-width: 0; max-width: 100%; }
     .top-right { justify-content: flex-end; }
     .submit-look {
       display: inline-flex;
@@ -331,47 +369,60 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; vertical-align: top; }
     @media (max-width: 820px) {
-      #app { display: block; overflow: visible; }
-      .statement, .work { overflow: visible; }
+      html, body { max-width: 100%; overflow-x: clip; }
+      #app { display: block; overflow: visible; max-width: 100%; }
+      .statement, .work { overflow: visible; max-width: 100%; min-width: 0; }
       .statement { border-right: 0; border-bottom: 1px solid var(--line); }
       body { height: auto; }
       .debug-grid { grid-template-columns: 1fr; }
       .solution-body { display: block; }
-      header { grid-template-columns: 1fr; }
+      .exam-bar { grid-template-columns: 1fr; }
       .top-right { justify-content: flex-start; }
-      button:not(.line-no), a.nav {
+      .clocks, .exam-timer, .task-clock { max-width: 100%; min-width: 0; }
+      .task-bar { flex-direction: column; align-items: stretch; }
+      .task-field, .task-field select, .task-bar button { width: 100%; max-width: 100%; }
+      button:not(.line-no), a.nav, select {
         min-width: 0;
-        min-height: 0;
         max-width: 100%;
-        padding: 2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        height: auto;
       }
-      a.nav { display: inline-block; line-height: normal; }
-      .gutter button.line-no { padding: 0 2px; }
+      a.nav { display: inline-flex; line-height: normal; }
+      .gutter button.line-no { padding: 0 2px; white-space: nowrap; }
     }
   </style>
 </head>
 <body>
   <header class="exam-top">
-    <div class="top-left">
-      <a class="nav" href="./index.html">ポータルへ戻る</a>
-      <a class="nav" href="./result-review.html">結果を分析</a>
-    </div>
-    <div class="clocks">
-      <div class="task-clock"><span class="clock-label">問題ごと</span><span class="clock" id="clock" aria-live="polite">--:--</span></div>
-      <div class="exam-timer" aria-label="全体の200分タイマー">
-        <span class="clock-label">全体</span>
-        <span class="clock" id="examTimerDisplay">200:00</span>
-        <button type="button" id="examTimerStart">開始</button>
-        <button type="button" id="examTimerReset">リセット</button>
-        <span class="exam-status" id="examTimerStatus" role="status"></span>
+    <div class="exam-bar">
+      <div class="top-left">
+        <a class="nav" href="./index.html">ポータルへ戻る</a>
+        <a class="nav" href="./result-review.html">結果を分析</a>
+      </div>
+      <div class="clocks">
+        <div class="task-clock"><span class="clock-label">問題ごと</span><span class="clock" id="clock" aria-live="polite">--:--</span></div>
+        <div class="exam-timer" aria-label="全体の200分タイマー">
+          <span class="clock-label">全体</span>
+          <span class="clock" id="examTimerDisplay">200:00</span>
+          <button type="button" id="examTimerStart">開始</button>
+          <button type="button" id="examTimerReset">リセット</button>
+          <span class="exam-status" id="examTimerStatus" role="status"></span>
+        </div>
+      </div>
+      <div class="top-right">
+        <button type="button" class="submit-look" id="submitAnswers">提出する</button>
+        <span class="submit-status" id="submitStatus" role="status"></span>
       </div>
     </div>
-    <div class="top-right">
-      <button type="button" class="submit-look" id="submitAnswers">提出する</button>
-      <span class="submit-status" id="submitStatus" role="status"></span>
+    <div class="task-bar">
+      <label class="task-field">Task
+        <select id="taskPick" aria-label="問題"></select>
+      </label>
+      <button type="button" id="solveOne">この問題を自動で解く</button>
+      <button type="button" id="solveAll">実行できる問題を順に解く</button>
+      <button type="button" id="stopBtn" disabled>停止</button>
     </div>
   </header>
   <main id="app">
@@ -379,14 +430,6 @@
     <section class="work">
       <div class="solution-head">
         <strong>Solution</strong>
-        <div class="top-right">
-          <label>Task
-            <select id="taskPick" aria-label="問題"></select>
-          </label>
-          <button type="button" id="solveOne">この問題を自動で解く</button>
-          <button type="button" id="solveAll">実行できる問題を順に解く</button>
-          <button type="button" id="stopBtn" disabled>停止</button>
-        </div>
       </div>
       <div class="solution-body">
         <aside class="files" aria-label="Files">
