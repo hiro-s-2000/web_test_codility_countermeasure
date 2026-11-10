@@ -1,4 +1,7 @@
 <!-- NAV_BAR -->
+
+> **受験時の確認:** この資料にある監視・AI判定や入力ログに関する断定的な記述は、根拠が確認できない推測を含みます。カメラ、外部IDE、コピー＆ペースト、翻訳、メモの使用条件は試験ごとの案内と主催者の指示を確認してください。イベント記録は不正の証明ではありません。[Codilityの監督機能の説明](https://support.codility.com/hc/en-us/articles/15584109019671-Proctoring-Ensuring-Assessment-Integrity-with-Behavioral-Events-Detection)
+
 > **辞書（手順 44 / 45）。** 本線は直前チートシートまでで一巡です。このページは通読しません。詰まった語だけ引いてください。
 
 # 難関テック企業・中途採用 Codility完全攻略＆Kotlin実践アーキテクチャ大全

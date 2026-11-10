@@ -79,6 +79,9 @@
     .reading-choice { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; line-height: 1.5; cursor: pointer; }
     .reading-choice input { margin-top: 4px; flex: 0 0 auto; }
     .submit-status { color: var(--bad); font-size: 13px; }
+    .prep-guide { grid-column: 1 / -1; padding: 12px 16px; background: var(--panel); border-top: 1px solid var(--line); }
+    .prep-guide summary { cursor: pointer; font-weight: 700; }
+    .prep-guide li { margin: 6px 0; line-height: 1.5; }
     .clocks { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
     .task-clock, .exam-timer { display: flex; align-items: center; gap: 6px; }
     .clock-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
@@ -401,12 +404,12 @@
             <div class="gutter" id="gutter" aria-hidden="true"></div>
             <div class="editor" id="editor">
               <div class="current-line" id="currentLine"></div>
-              <textarea id="code" readonly spellcheck="false" aria-label="自動入力されるコード"></textarea>
+              <textarea id="code" spellcheck="false" aria-label="Kotlinコードの入力欄"></textarea>
               <span class="fake-caret" id="caret" aria-hidden="true"></span>
               <span class="key-hint" id="keyHint" aria-live="polite"><kbd id="keyName"></kbd><span id="keyNote"></span></span>
             </div>
           </div>
-          <div class="editor-foot">サンプルの結果はすぐ出ます。琥珀色の文は、注目点を順番に示します。</div>
+          <div class="editor-foot">外部IDEで書いたコードを貼り付けるか、ここに直接入力できます。入力内容は問題ごとに保存されます。 <button type="button" id="copyCode">コードをコピー</button> <span id="copyStatus" role="status"></span></div>
           <section class="debug-dock" id="dock" aria-label="Test Output">
             <div class="output-head">
               <strong>Test Output</strong>
@@ -419,7 +422,7 @@
               <button type="button" id="debugStop">停止</button>
             </div>
             <div class="output-body">
-              <p id="lead" class="muted">制限時間内に入力します。エンターで今のインデントを保ち、タブで次のインデントへ進みます。サンプルの結果はすぐ出て、琥珀色の注目点を見ている間は制限時間が止まります。問題がなければ次の問題に進みます。class の問題は実行しません。</p>
+              <p id="lead" class="muted">「Run code」で入力中のコードをサンプル実行できます。これはKotlinの一部を再現した練習用実行機で、実際のコンパイラや本番の採点とは異なります。classなどの問題は実行できません。</p>
               <p id="think" aria-live="polite"></p>
               <div id="results"></div>
               <ol id="log"></ol>
@@ -450,6 +453,18 @@
         </div>
       </div>
     </section>
+    <details class="prep-guide">
+      <summary>受験前の確認と1週間の練習方法</summary>
+      <ul>
+        <li>1〜2日目：案内の制限時間・使用言語・外部IDEやコピー＆ペーストの可否を確認し、デモテストで画面操作を試します。</li>
+        <li>3〜4日目：外部IDEで書いたコードをこの欄へ貼り付け、サンプルを実行し、空・最小・最大などの境界を確認します。</li>
+        <li>5〜6日目：制限時間を決めて複数問を解き、計算量と間違えた箇所を見直します。</li>
+        <li>7日目：デモ操作と使用環境を再確認し、本番前に休息と時間を確保します。</li>
+        <li>カメラ・画面録画・操作ログは試験ごとの設定によります。案内や開始前の説明を確認し、不明な点は主催者に問い合わせてください。</li>
+        <li>翻訳や外部IDEの利用可否は試験のルールを確認してください。翻訳後は数式・コード・条件を原文と照合してください。</li>
+      </ul>
+      <p><a href="https://support.codility.com/hc/en-us/sections/360008207593-FAQ-Candidates" target="_blank" rel="noopener">Codility受験者向けFAQ</a> / <a href="https://support.codility.com/hc/en-us/articles/15584109019671-Proctoring-Ensuring-Assessment-Integrity-with-Behavioral-Events-Detection" target="_blank" rel="noopener">監督機能の説明</a></p>
+    </details>
     <section class="reading-section" id="readingSection" aria-labelledby="readingTitle">
       <h2 id="readingTitle">読解問題</h2>
       <p>問題ごとに選択し、最後に「提出する」を押すと結果を確認できます。</p>

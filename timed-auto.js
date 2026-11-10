@@ -84,6 +84,8 @@
   if (!readingDraft || !readingDraft.selections || typeof readingDraft.selections !== "object") {
     readingDraft = { startedAt: new Date().toISOString(), selections: {} };
   }
+  if (!readingDraft.codes || typeof readingDraft.codes !== "object") readingDraft.codes = {};
+  if (!readingDraft.runs || typeof readingDraft.runs !== "object") readingDraft.runs = {};
   var keyHint = document.getElementById("keyHint");
   var keyName = document.getElementById("keyName");
   var keyNote = document.getElementById("keyNote");
@@ -93,6 +95,15 @@
   function showSubmitStatus(message) {
     submitStatus.textContent = message;
     submitStatusBottom.textContent = message;
+  }
+
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(readingDraft));
+      showSubmitStatus("");
+    } catch (error) {
+      showSubmitStatus("回答を保存できません。ページを閉じずに提出してください。");
+    }
   }
 
   function el(tag, className, text) {
@@ -188,12 +199,7 @@
         input.addEventListener("change", function () {
           if (!readingDraft.selections[task.id]) readingDraft.selections[task.id] = {};
           readingDraft.selections[task.id][question.id] = choice.id;
-          try {
-            localStorage.setItem(DRAFT_KEY, JSON.stringify(readingDraft));
-            showSubmitStatus("");
-          } catch (error) {
-            showSubmitStatus("回答を保存できません。ページを閉じずに提出してください。");
-          }
+          saveDraft();
         });
         label.appendChild(input);
         label.appendChild(el("span", null, choice.text));
@@ -214,6 +220,8 @@
     stopBtn.disabled = !busy;
     submitAnswers.disabled = busy;
     submitAnswersBottom.disabled = busy;
+    codeBox.readOnly = busy;
+    document.getElementById("runLook").disabled = busy;
   }
 
   function formatClock(ms) {
@@ -439,7 +447,7 @@
       });
     }
     showTests(doneRows);
-    var statusNodes = results.querySelectorAll("p");
+    var statusNodes = results.querySelectorAll(".pass, .fail");
     for (t = 0; t < statusNodes.length; t += 1) statusNodes[t].setAttribute("data-sample", String(t));
     log("サンプルの結果を表示しました。注目点を見ている間、制限時間は止まります。");
     if (clock) clock.pause();
@@ -630,7 +638,8 @@
   }
 
   function showShell(task) {
-    var shell = shellOf(task);
+    var shell = Object.prototype.hasOwnProperty.call(readingDraft.codes, task.id)
+      ? readingDraft.codes[task.id] : shellOf(task);
     codeBox.value = shell;
     codeBox.scrollTop = 0;
     codeBox.scrollLeft = 0;
@@ -785,6 +794,7 @@
     rows.forEach(function (row) {
       var line = row.name + (row.ok ? " 合っています" : " 期待と違います");
       results.appendChild(el("p", row.ok ? "pass" : "fail", line));
+      results.appendChild(el("p", "muted", "結果: " + shown(row.actual) + " / 期待: " + shown(row.expected)));
     });
   }
 
@@ -946,9 +956,9 @@
     if (!automatic) {
       try { automatic = JSON.parse(localStorage.getItem(AUTO_REPORT_KEY) || "null"); } catch (error) { automatic = null; }
     }
-    var report = root.PracticeReport.buildReport(tasks, readingDraft.selections, automatic, readingDraft.startedAt);
+    var report = root.PracticeReport.buildReport(tasks, readingDraft.selections, automatic, readingDraft.startedAt, readingDraft.codes, readingDraft.runs);
     if (!report.tasks.length) {
-      showSubmitStatus("選択問題に回答するか、自動実行を終えてから提出してください。");
+      showSubmitStatus("コードを入力するか、選択問題に回答してから提出してください。");
       return;
     }
     try {
@@ -981,7 +991,11 @@
         if (!pause) break;
       }
     }
-    if (session === token) setBusy(false);
+    if (session === token) {
+      setBusy(false);
+      var selectedTask = taskById(pick.value);
+      if (selectedTask && Object.prototype.hasOwnProperty.call(readingDraft.codes, selectedTask.id)) showShell(selectedTask);
+    }
   }
 
   pick.addEventListener("change", function () {
@@ -1017,11 +1031,66 @@
     session += 1;
     setBusy(false);
     idleEditor();
+    var selectedTask = taskById(pick.value);
+    if (selectedTask && Object.prototype.hasOwnProperty.call(readingDraft.codes, selectedTask.id)) showShell(selectedTask);
     noteEvent(sessionReport, "停止");
     log("停止しました。");
   }
   stopBtn.addEventListener("click", halt);
   debugStop.addEventListener("click", halt);
+  codeBox.addEventListener("input", function () {
+    var task = taskById(pick.value);
+    if (!task) return;
+    readingDraft.codes[task.id] = codeBox.value;
+    delete readingDraft.runs[task.id];
+    results.textContent = "";
+    renderGutter({}, 0);
+    saveDraft();
+  });
+  document.getElementById("copyCode").addEventListener("click", function () {
+    var status = document.getElementById("copyStatus");
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      codeBox.focus();
+      codeBox.select();
+      status.textContent = "コードを選択しました。コピーしてIDEに貼り付けてください。";
+      return;
+    }
+    navigator.clipboard.writeText(codeBox.value).then(function () {
+      status.textContent = "コピーしました。";
+    }, function () {
+      codeBox.focus();
+      codeBox.select();
+      status.textContent = "コードを選択しました。手動でコピーしてください。";
+    });
+  });
+  document.getElementById("runLook").addEventListener("click", function () {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var source = codeBox.value;
+    readingDraft.codes[task.id] = source;
+    var run = { source: source, tests: [], error: "" };
+    results.textContent = "";
+    if (!task.runnable || !(task.tests || []).length) {
+      run.error = "この問題は練習用実行機で実行できません。外部IDEで確認してください。";
+    } else {
+      try {
+        var outcome = root.Kotlite.runTests(source, task.tests);
+        if (outcome.paused || !outcome.results || outcome.results.length !== task.tests.length) {
+          run.error = "サンプル実行を完了できませんでした。";
+        } else {
+          run.tests = outcome.results.map(function (row, index) {
+            return { name: row.name, ok: !!row.ok, actual: row.actual, expected: row.expected, because: (task.tests[index] && task.tests[index].because) || "" };
+          });
+        }
+      } catch (error) {
+        run.error = (error && error.message) ? error.message : "実行できませんでした。";
+      }
+    }
+    readingDraft.runs[task.id] = run;
+    saveDraft();
+    if (run.error) results.appendChild(el("p", "fail", "実行できません: " + run.error));
+    else showTests(run.tests);
+  });
   codeBox.addEventListener("scroll", function () {
     gutter.scrollTop = codeBox.scrollTop;
     placeCurrentLine(currentLineNo);

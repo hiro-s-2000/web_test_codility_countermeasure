@@ -83,6 +83,7 @@
 
   function warn(item) {
     if (item.reading && item.reading.length) return item.reading.some(function (row) { return !row.ok; });
+    if (item.manualRun) return !!item.manualRunError || (item.tests || []).some(function (row) { return !row.ok; });
     return item.result !== "時間内に完了";
   }
 
@@ -154,6 +155,7 @@
     }
     var tests = item.tests || [];
     var hasAutomatic = item.automaticResult != null || !Array.isArray(item.reading);
+    var hasCode = typeof item.submittedCode === "string";
     var stats = el("div", "stats");
     var correct = el("div");
     correct.appendChild(el("span", "note", reading.length ? "読解の正解数" : "サンプルの合格数"));
@@ -176,7 +178,7 @@
     function paintHead() {
       head.textContent = "";
       var allOk = tests.length > 0 && tests.every(function (row) { return row.ok; });
-      head.appendChild(el("span", null, "サンプル"));
+      head.appendChild(el("span", null, hasCode ? "入力コードのサンプル" : "自動実行のサンプル"));
       head.appendChild(el("span", allOk ? "ok" : "bad", allOk ? "サンプルはすべて合格" : "サンプルを確認"));
     }
     var body = el("div");
@@ -190,7 +192,7 @@
       block.appendChild(el("p", null, detail));
       body.appendChild(block);
     });
-    if (!tests.length) body.appendChild(el("p", "case", "サンプルは実行していません。"));
+    if (!tests.length) body.appendChild(el("p", "case", item.manualRunError || "サンプルは実行していません。"));
     head.addEventListener("click", function () {
       open = !open;
       body.hidden = !open;
@@ -198,10 +200,10 @@
     paintHead();
     group.appendChild(head);
     group.appendChild(body);
-    if (hasAutomatic) insight.appendChild(group);
+    if (hasAutomatic || hasCode) insight.appendChild(group);
 
     var switcher = el("div", "view-switch");
-    var codeBtn = el("button", "is-on", "自動実行コード");
+    var codeBtn = el("button", "is-on", hasCode ? "提出したコード" : "自動実行コード");
     var textBtn = el("button", null, "問題文");
     codeBtn.type = "button";
     textBtn.type = "button";
@@ -210,7 +212,7 @@
       codeBtn.className = "is-on";
       textBtn.className = "";
       view.textContent = "";
-      var code = item.automaticCode || (item.automaticResult == null && !item.reading && answers[item.id] && answers[item.id].code);
+      var code = hasCode ? item.submittedCode : (item.automaticCode || (item.automaticResult == null && !item.reading && answers[item.id] && answers[item.id].code));
       view.appendChild(el("pre", null, code || "コードはありません。"));
     }
     function showText() {
@@ -227,10 +229,10 @@
     textBtn.addEventListener("click", showText);
     switcher.appendChild(codeBtn);
     switcher.appendChild(textBtn);
-    if (!hasAutomatic) codeBtn.disabled = true;
+    if (!hasAutomatic && !hasCode) codeBtn.disabled = true;
     insight.appendChild(switcher);
     insight.appendChild(view);
-    if (hasAutomatic) showCode(); else showText();
+    if (hasAutomatic || hasCode) showCode(); else showText();
   }
 
   function renderTable(items) {
@@ -241,7 +243,7 @@
       tr.className = "task" + (warn(item) ? " is-warn" : "") + (index === selected ? " is-on" : "");
       var name = document.createElement("td");
       name.appendChild(el("strong", null, task ? task.title : item.id));
-      name.appendChild(el("span", "lang", item.reading && item.reading.length ? "読解" : "Kotlin（自動実行）"));
+      name.appendChild(el("span", "lang", item.reading && item.reading.length ? "読解" : (typeof item.submittedCode === "string" ? "Kotlin（入力）" : "Kotlin（自動実行）")));
       tr.appendChild(name);
       tr.appendChild(el("td", null, spent(item.elapsedMs)));
       var score = scoreOf(item);
@@ -273,8 +275,8 @@
     if (!items.length) selected = 0;
     var hasReading = items.some(function (item) { return item.reading && item.reading.length; });
     scoreNote.textContent = hasReading
-      ? "読解問題の正解率です。未回答の設問は不正解として数えます。自動実行のサンプル結果は各問題の詳細に表示します。"
-      : "得点は、自動実行したサンプルの合格率です。隠しテストや計算量の採点はありません。";
+      ? "読解問題の正解率です。未回答の設問は不正解として数えます。コードのサンプル結果は各問題の詳細に表示します。"
+      : "得点はサンプルの合格率です。練習用実行機による結果で、隠しテストや計算量の採点はありません。";
     drawRing(totalScore(items));
     renderTable(items);
     renderTimeline(items);
