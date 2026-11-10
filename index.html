@@ -1090,24 +1090,18 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      button:not(.line-no), a.icon-btn {
+      button:not(#menuBtn, .line-no, .filter-tab, .accordion-header, .mini-link-btn, .sub-toggle-btn), a.icon-btn {
         min-width: 0;
+        min-height: 0;
         max-width: 100%;
         padding: 2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .icon-btn { display: inline-block; line-height: 38px; }
+      .icon-btn { display: inline-block; line-height: normal; }
       .menu-btn, .icon-btn, .timer-btn { min-width: 44px; }
-      .filter-tabs { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-      .accordion-header-left > span:last-child {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .nav-card { padding: 2px; }
+      .nav-card { min-height: 0; padding: 2px; }
       .nav-card-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .brand-badge { display: none; }
     }

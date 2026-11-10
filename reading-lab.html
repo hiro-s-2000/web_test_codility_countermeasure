@@ -196,13 +196,14 @@
       body { height: auto; }
       button:not(.line-no), .back, .portal-link {
         min-width: 0;
+        min-height: 0;
         max-width: 100%;
         padding: 2px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .back, .portal-link { display: inline-block; line-height: 38px; }
+      .back, .portal-link { display: inline-block; line-height: normal; }
       .gutter button.line-no { padding: 0 2px; }
     }
   </style>
