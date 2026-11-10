@@ -3,6 +3,10 @@
 🌐 **Webポータル（GitHub Pages）を開く:**
 👉 **[https://hiro-s-2000.github.io/web_test_codility_countermeasure/](https://hiro-s-2000.github.io/web_test_codility_countermeasure/)**
 
+🧪 **問題文の読解練習:**
+👉 **[reading-lab.html](https://hiro-s-2000.github.io/web_test_codility_countermeasure/reading-lab.html)**
+Codility の画面と同じ並びで、問題文から返す値を先に答え、右のエディタに Kotlin を書きます。公式問題文の転載ではありません。ページ上では Kotlin を実行せず、想像した返り値を採点します。左上の「読解練習」からも開けます。
+
 > 💡 **下記のリンクをタップすると、すべて GitHub Pages（Webポータル）上の該当画面・問題箇所へ直接遷移します。**
 > また、**Kotlinコード（`.kt`）をタップした場合は、現在の画面を維持したままモーダルダイアログでコードが表示されます。**
 
