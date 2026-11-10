@@ -1234,6 +1234,7 @@
       let searchQuery = "";
       let activeId = docs.length ? docs[0].id : null;
       let activeHeadingText = "";
+      let activeHeadingIndex = -1;
       let currentModalDoc = null;
       let pinnedCodeScrollTop = null;
 
@@ -1532,7 +1533,7 @@
       }
 
       // Open Code Modal Dialog for a .kt file and sync sidebar selection
-      function openCodeModal(doc, headingText) {
+      function openCodeModal(doc, headingText, headingIndex = -1) {
         if (!doc) return;
         currentModalDoc = doc;
         syncFilterForDoc(doc);
@@ -1540,8 +1541,9 @@
           openCategories[k] = k === doc.categoryLabel || k === "上からこの順に進める";
         });
         const headings = doc.headings || [];
-        const chosen = headings.find((h) => h.text === headingText) || headings[0] || null;
+        const chosen = (headingIndex >= 0 && headings[headingIndex]) || headings.find((h) => h.text === headingText) || headings[0] || null;
         activeHeadingText = chosen ? chosen.text : (headingText || "");
+        activeHeadingIndex = chosen ? headings.indexOf(chosen) : -1;
         openSubDocs[doc.id] = true;
         codeModalTitle.textContent = "💻 " + doc.title;
         codeModalPath.textContent = "📁 " + doc.path;
@@ -1552,6 +1554,7 @@
           hljs.highlightElement(codeModalCode);
         }
         codeModalBackdrop.classList.add("open");
+        renderNavFooter();
         suppressCodeScrollSync += 1;
         if (codeModalBodyEl) codeModalBodyEl.scrollTop = 0;
         renderSidebar(true);
@@ -1621,6 +1624,7 @@
           activeHeadingText = pageHeading || "";
           renderSidebar(true);
           syncTocToVisibleHeading();
+          renderNavFooter();
         }
       }
 
@@ -1692,7 +1696,7 @@
         window.setTimeout(pinDocumentScroll, 800);
       }
 
-      function scrollToHeadingInDoc(anchorRaw) {
+      function scrollToHeadingInDoc(anchorRaw, headingIndex = -1) {
         if (!anchorRaw) return false;
         const decoded = safeDecodeURI(anchorRaw.replace(/^#/, "")).trim();
         if (!decoded) return false;
@@ -1701,7 +1705,8 @@
         const targetSlug = slugifyHeading(decoded);
         const normDecoded = decoded.toLowerCase().replace(/[\s　`]+/g, "");
 
-        let matched = headings.find(
+        const subHeadings = headings.filter((h) => h.tagName === "H2" || h.tagName === "H3");
+        let matched = (headingIndex >= 0 && subHeadings[headingIndex]) || headings.find(
           (h) =>
             h.id === decoded ||
             h.dataset.slug === decoded.toLowerCase() ||
@@ -1712,6 +1717,7 @@
 
         if (matched) {
           activeHeadingText = resolveSidebarHeadingText(matched);
+          activeHeadingIndex = subHeadings.indexOf(matched);
           const activeDoc = docs.find((d) => d.id === activeId);
           if (activeDoc) {
             syncFilterForDoc(activeDoc);
@@ -1725,7 +1731,7 @@
           void matched.offsetWidth;
           matched.classList.add("heading-flash");
           renderSidebar(true);
-          syncTocToVisibleHeading();
+          renderNavFooter();
           return true;
         }
         return false;
@@ -1734,6 +1740,11 @@
       function visibleTocLink() {
         const links = Array.from(tocListEl.querySelectorAll(".toc-link"));
         if (!links.length) return null;
+        const maxScroll = contentWrapperEl.scrollHeight - contentWrapperEl.clientHeight;
+        if (maxScroll > 0 && contentWrapperEl.scrollTop >= maxScroll - 2) {
+          const lastSubHeading = links.filter((link) => link.classList.contains("toc-h2") || link.classList.contains("toc-h3")).pop();
+          if (lastSubHeading) return lastSubHeading;
+        }
         const rootTop = contentWrapperEl.getBoundingClientRect().top;
         let current = links[0];
         links.forEach((a) => {
@@ -1760,7 +1771,9 @@
         const items = fileListEl.querySelectorAll(".file-item-wrap.active-wrap .sub-heading-item");
         let matchedEl = null;
         items.forEach((el) => {
-          if (!matchedEl && text && el.dataset.heading === text) matchedEl = el;
+          if (!matchedEl && text && (activeHeadingIndex >= 0
+            ? Number(el.dataset.headingIndex) === activeHeadingIndex
+            : el.dataset.heading === text)) matchedEl = el;
         });
         if (!matchedEl) return;
         items.forEach((el) => el.classList.toggle("active-heading", el === matchedEl));
@@ -1788,8 +1801,13 @@
         }
         if (currentModalDoc) return;
         const text = visibleTocHeadingText();
-        if (text !== activeHeadingText) {
+        const headingId = current && (current.getAttribute("href") || "").slice(1);
+        const headingNode = headingId && docBodyEl.querySelector("#" + CSS.escape(headingId));
+        const index = headingNode ? Array.from(docBodyEl.querySelectorAll("h2, h3")).indexOf(headingNode) : -1;
+        if (text !== activeHeadingText || index !== activeHeadingIndex) {
           activeHeadingText = text;
+          activeHeadingIndex = index;
+          renderNavFooter();
         }
         markSidebarHeading(text);
       }
@@ -1954,36 +1972,38 @@
               const subListEl = document.createElement("div");
               subListEl.className = "sub-heading-list";
               let matchedSubAlready = false;
-              item.headings.forEach((h) => {
+              item.headings.forEach((h, headingIndex) => {
                 const subItem = document.createElement("a");
                 const isHeadingActive =
                   !matchedSubAlready &&
                   isItemActive &&
                   activeHeadingText &&
-                  (activeHeadingText === h.text ||
+                  (activeHeadingIndex >= 0 ? activeHeadingIndex === headingIndex : (activeHeadingText === h.text ||
                     slugifyHeading(activeHeadingText) === slugifyHeading(h.text) ||
                     activeHeadingText.includes(h.text) ||
-                    h.text.includes(activeHeadingText));
+                    h.text.includes(activeHeadingText)));
                 if (isHeadingActive) {
                   matchedSubAlready = true;
                   activeSubHeadingDom = subItem;
                 }
                 subItem.className = "sub-heading-item" + (isHeadingActive ? " active-heading" : "");
                 subItem.dataset.heading = h.text;
+                subItem.dataset.headingIndex = String(headingIndex);
                 subItem.textContent = (h.level === 3 ? "・" : "▸ ") + h.text;
                 subItem.addEventListener("click", (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   if (item.type === "kotlin") {
-                    openCodeModal(item, h.text);
+                    openCodeModal(item, h.text, headingIndex);
                     closeMobileDrawers();
                     return;
                   }
                   activeHeadingText = h.text;
+                  activeHeadingIndex = headingIndex;
                   if (activeId === item.id) {
-                    scrollToHeadingInDoc(h.text);
+                    scrollToHeadingInDoc(h.text, headingIndex);
                   } else {
-                    selectDoc(item.id, true, h.text);
+                    selectDoc(item.id, true, h.text, false, headingIndex);
                   }
                   closeMobileDrawers();
                 });
@@ -2033,7 +2053,7 @@
         return null;
       }
 
-      function selectDoc(id, updateHash = true, targetAnchor = null, forceMainViewForKotlin = false) {
+      function selectDoc(id, updateHash = true, targetAnchor = null, forceMainViewForKotlin = false, targetHeadingIndex = -1) {
         const doc = docs.find((d) => d.id === id) || resolveDocByLink(id) || docs[0];
         if (!doc) return;
 
@@ -2048,6 +2068,7 @@
 
         activeId = doc.id;
         activeHeadingText = targetAnchor ? safeDecodeURI(targetAnchor.replace(/^#/, "")).trim() : "";
+        activeHeadingIndex = targetHeadingIndex;
 
         // Close other accordions by default, and open ONLY the accordion & sub-accordion of the selected page
         Object.keys(openCategories).forEach((k) => {
@@ -2165,8 +2186,10 @@
               });
               if (h.tagName === "H2" || h.tagName === "H3") {
                 activeHeadingText = h.textContent.replace(/`/g, "").trim();
+                activeHeadingIndex = Array.from(docBodyEl.querySelectorAll("h2, h3")).indexOf(h);
               } else {
                 activeHeadingText = resolveSidebarHeadingText(h);
+                activeHeadingIndex = -1;
               }
               scrollHeadingIntoArticle(h);
               renderSidebar(true);
@@ -2176,26 +2199,7 @@
           }
         });
 
-        // Prev / next follows the same top-to-bottom menu order.
-        const idx = docs.findIndex((d) => d.id === doc.id);
-        navFooterEl.innerHTML = "";
-        if (idx > 0) {
-          const prev = docs[idx - 1];
-          const prevCard = document.createElement("div");
-          prevCard.className = "nav-card";
-          prevCard.innerHTML = `<div class="nav-card-label">← メニューの一つ上</div><div class="nav-card-title">${escapeHtml(prev.title)}</div>`;
-          prevCard.addEventListener("click", () => selectDoc(prev.id));
-          navFooterEl.appendChild(prevCard);
-        }
-        if (idx !== -1 && idx < docs.length - 1) {
-          const next = docs[idx + 1];
-          const nextCard = document.createElement("div");
-          nextCard.className = "nav-card";
-          nextCard.style.textAlign = "right";
-          nextCard.innerHTML = `<div class="nav-card-label">メニューの一つ下 →</div><div class="nav-card-title">${escapeHtml(next.title)}</div>`;
-          nextCard.addEventListener("click", () => selectDoc(next.id));
-          navFooterEl.appendChild(nextCard);
-        }
+        renderNavFooter();
 
         if (window.GithubPreview) {
           window.GithubPreview.decorate(docBodyEl);
@@ -2205,11 +2209,10 @@
 
         if (targetAnchor) {
           requestAnimationFrame(() => {
-            if (!scrollToHeadingInDoc(targetAnchor)) {
+            if (!scrollToHeadingInDoc(targetAnchor, targetHeadingIndex)) {
               contentWrapperEl.scrollTop = 0;
               renderSidebar(true);
             }
-            syncTocToVisibleHeading();
             syncChromeOffsets();
           });
         } else {
@@ -2218,6 +2221,49 @@
           syncChromeOffsets();
         }
         if (window.innerWidth <= 820) closeMobileDrawers();
+      }
+
+      // Follow the same document and heading order as the unfiltered sidebar.
+      function footerEntries() {
+        const ordered = docs.filter((d) => d.category !== "lesson")
+          .concat(docs.filter((d) => d.category === "lesson"));
+        return ordered.flatMap((d) => (d.headings && d.headings.length)
+          ? d.headings.map((heading, headingIndex) => ({ doc: d, heading, headingIndex }))
+          : [{ doc: d, heading: null }]);
+      }
+
+      function renderNavFooter() {
+        const current = currentModalDoc || docs.find((d) => d.id === activeId);
+        if (!current) return;
+        const entries = footerEntries();
+        const matching = entries.findIndex((entry) => entry.doc.id === current.id && entry.heading && (activeHeadingIndex >= 0
+          ? entry.headingIndex === activeHeadingIndex
+          :
+          (entry.heading.text === activeHeadingText ||
+            (activeHeadingText && slugifyHeading(entry.heading.text) === slugifyHeading(activeHeadingText)))));
+        const first = entries.findIndex((entry) => entry.doc.id === current.id);
+        const idx = matching >= 0 ? matching : first;
+        navFooterEl.innerHTML = "";
+        function addCard(entry, next) {
+          if (!entry) return;
+          const card = document.createElement("div");
+          card.className = "nav-card";
+          if (next) card.style.textAlign = "right";
+          const title = entry.heading ? entry.heading.text : entry.doc.title;
+          card.innerHTML = `<div class="nav-card-label">${next ? "メニューの一つ下 →" : "← メニューの一つ上"}</div><div class="nav-card-title">${escapeHtml(title)}</div>`;
+          card.addEventListener("click", () => {
+            if (entry.doc.type === "kotlin") {
+              openCodeModal(entry.doc, entry.heading && entry.heading.text, entry.headingIndex);
+            } else if (entry.doc.id === activeId && entry.heading && !currentModalDoc) {
+              scrollToHeadingInDoc(entry.heading.text, entry.headingIndex);
+            } else {
+              selectDoc(entry.doc.id, true, entry.heading && entry.heading.text, false, entry.headingIndex);
+            }
+          });
+          navFooterEl.appendChild(card);
+        }
+        if (idx > 0) addCard(entries[idx - 1], false);
+        if (idx >= 0 && idx + 1 < entries.length) addCard(entries[idx + 1], true);
       }
 
       // Universal Link Click Interceptor inside #docBody
@@ -2340,9 +2386,13 @@
               pinnedCodeScrollTop = null;
             }
             const heading = headingForCodeScroll();
-            if (!heading || heading.text === activeHeadingText) return;
+            if (!heading) return;
+            const headingIndex = (currentModalDoc.headings || []).indexOf(heading);
+            if (heading.text === activeHeadingText && headingIndex === activeHeadingIndex) return;
             activeHeadingText = heading.text;
+            activeHeadingIndex = headingIndex;
             markSidebarHeading(heading.text);
+            renderNavFooter();
           });
         }, { passive: true });
       }
