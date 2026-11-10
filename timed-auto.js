@@ -398,7 +398,7 @@
   }
 
   function showExplanation(text) {
-    debugNote.textContent = text;
+    debugNote.textContent = "";
     think.textContent = text;
     think.classList.add("is-on");
   }
@@ -454,13 +454,9 @@
     try {
       for (t = 0; t < doneRows.length; t += 1) {
         if (session !== token) return endDebug({ stopped: true });
-        var old = results.querySelectorAll(".explain");
-        var n;
-        for (n = 0; n < old.length; n += 1) old[n].classList.remove("explain");
         showCurrentSample(t);
         showCase(tests[t]);
         var sentence = explainResult(doneRows[t], tests[t]);
-        results.appendChild(el("p", "explain", sentence));
         showExplanation(sentence);
         var seen = await wait(1500, token);
         if (!seen) return endDebug({ stopped: true });
