@@ -118,6 +118,21 @@
       .grid { display: block; }
       .score-card { margin-top: 12px; }
       main { padding: 16px 12px 32px; }
+      button, a.nav {
+        min-width: 0;
+        max-width: 100%;
+        padding: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      a.nav { display: inline-block; line-height: 38px; }
+      .group > button > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   </style>
 </head>

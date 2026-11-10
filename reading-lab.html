@@ -194,6 +194,16 @@
       .statement, .work { overflow: visible; }
       .statement { border-right: 0; border-bottom: 1px solid var(--line); }
       body { height: auto; }
+      button:not(.line-no), .back, .portal-link {
+        min-width: 0;
+        max-width: 100%;
+        padding: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .back, .portal-link { display: inline-block; line-height: 38px; }
+      .gutter button.line-no { padding: 0 2px; }
     }
   </style>
 </head>

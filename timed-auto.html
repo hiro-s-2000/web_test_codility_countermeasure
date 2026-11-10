@@ -321,6 +321,16 @@
       .solution-body { display: block; }
       header { grid-template-columns: 1fr; }
       .top-right { justify-content: flex-start; }
+      button:not(.line-no), a.nav {
+        min-width: 0;
+        max-width: 100%;
+        padding: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      a.nav { display: inline-block; line-height: 38px; }
+      .gutter button.line-no { padding: 0 2px; }
     }
   </style>
 </head>
