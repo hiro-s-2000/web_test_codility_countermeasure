@@ -1010,7 +1010,14 @@
         padding: 1px 14px 28px;
       }
       .doc-meta-bar { padding-top: 2px; padding-bottom: 0; margin-bottom: 0; }
-      .doc-badge { cursor: pointer; }
+      .doc-badge {
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+      }
       .doc-badge.dismissed { display: none; }
       .doc-meta-bar:has(.doc-badge.dismissed):has(.doc-actions:empty) { display: none; }
       .markdown-body { font-size: 15.5px; line-height: 1.75; }
