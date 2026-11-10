@@ -10,6 +10,51 @@
   var results = document.getElementById("results");
   var summary = document.getElementById("summary");
   var clock = document.getElementById("clock");
+  var examDisplay = document.getElementById("examTimerDisplay");
+  var examStart = document.getElementById("examTimerStart");
+  var examReset = document.getElementById("examTimerReset");
+  var examStatus = document.getElementById("examTimerStatus");
+  var examRemaining = 200 * 60 * 1000;
+  var examDeadline = null;
+  var examTicker = null;
+
+  function updateExamTimer() {
+    if (examDeadline !== null) examRemaining = Math.max(0, examDeadline - Date.now());
+    examDisplay.textContent = formatClock(examRemaining);
+    if (examRemaining === 0 && examDeadline !== null) {
+      window.clearInterval(examTicker);
+      examTicker = null;
+      examDeadline = null;
+      examStart.textContent = "終了";
+      examStart.disabled = true;
+      examStatus.textContent = "200分が経過しました";
+    }
+  }
+  examStart.addEventListener("click", function () {
+    if (examDeadline !== null) {
+      updateExamTimer();
+      if (examDeadline === null) return;
+      window.clearInterval(examTicker);
+      examTicker = null;
+      examDeadline = null;
+      examStart.textContent = "再開";
+    } else if (examRemaining > 0) {
+      examDeadline = Date.now() + examRemaining;
+      examStart.textContent = "一時停止";
+      examTicker = window.setInterval(updateExamTimer, 250);
+    }
+  });
+  examReset.addEventListener("click", function () {
+    window.clearInterval(examTicker);
+    examTicker = null;
+    examDeadline = null;
+    examRemaining = 200 * 60 * 1000;
+    examStart.disabled = false;
+    examStart.textContent = "開始";
+    examStatus.textContent = "";
+    updateExamTimer();
+  });
+  document.addEventListener("visibilitychange", updateExamTimer);
   var think = document.getElementById("think");
   var editor = document.getElementById("editor");
   var caret = document.getElementById("caret");

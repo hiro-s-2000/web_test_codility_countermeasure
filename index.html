@@ -145,38 +145,6 @@
       color: var(--accent);
     }
 
-    /* Exam Timer Widget */
-    .timer-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-color);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 13px;
-    }
-    .timer-display {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--green);
-      min-width: 68px;
-      text-align: center;
-    }
-    .timer-btn {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      border-radius: 5px;
-      padding: 2px 7px;
-      font-size: 11.5px;
-      cursor: pointer;
-    }
-    .timer-btn:hover {
-      background: var(--bg-hover);
-    }
-
     .icon-btn {
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
@@ -985,12 +953,11 @@
         min-width: 44px;
         min-height: 44px;
       }
-      .menu-btn, .icon-btn, .timer-btn, .filter-tab,
+      .menu-btn, .icon-btn, .filter-tab,
       .accordion-header, .mini-link-btn, .copy-code-btn, .nav-card {
         min-height: 44px;
       }
-      .icon-btn, .timer-btn { min-width: 44px; }
-      .timer-box { padding: 4px 8px; }
+      .icon-btn { min-width: 44px; }
       .sidebar {
         position: absolute;
         top: 0;
@@ -1100,7 +1067,7 @@
         text-overflow: ellipsis;
       }
       .icon-btn { display: inline-block; line-height: normal; }
-      .menu-btn, .icon-btn, .timer-btn { min-width: 44px; }
+      .menu-btn, .icon-btn { min-width: 44px; }
       .nav-card { min-height: 0; padding: 2px; }
       .nav-card-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .brand-badge { display: none; }
@@ -1122,13 +1089,6 @@
       <a class="icon-btn" href="./reading-lab.html" title="問題文を読んでから、コードを書いてサンプルを実行する">読解練習</a>
       <a class="icon-btn" href="./timed-auto.html" title="問題文を表示し、制限時間内にコードを入力してサンプルを実行する">制限時間で解く</a>
       <a class="icon-btn" href="./result-review.html" title="解いたサンプルの合格と使った時間を見る">結果を分析</a>
-      <!-- 200-Minute Exam Timer -->
-      <div class="timer-box" title="本番模試用 200分タイマー">
-        <span>⏱️</span>
-        <span class="timer-display" id="timerDisplay">200:00</span>
-        <button class="timer-btn" id="timerStartBtn">開始</button>
-        <button class="timer-btn" id="timerResetBtn">リセット</button>
-      </div>
       <button class="icon-btn" id="themeBtn" title="テーマ切替">🌙 外観切替</button>
       <a class="icon-btn" href="https://github.com/hiro-s-2000/web_test_codility_countermeasure" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -2533,49 +2493,6 @@
         if (activeId) {
           selectDoc(activeId, false);
         }
-      });
-
-      // 200-Minute Exam Timer
-      let remainingSec = 200 * 60;
-      let timerInterval = null;
-      const timerDisplay = document.getElementById("timerDisplay");
-      const timerStartBtn = document.getElementById("timerStartBtn");
-      const timerResetBtn = document.getElementById("timerResetBtn");
-
-      function formatTime(sec) {
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
-        return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-      }
-
-      timerStartBtn.addEventListener("click", () => {
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-          timerStartBtn.textContent = "再開";
-        } else {
-          timerStartBtn.textContent = "一時停止";
-          timerInterval = setInterval(() => {
-            if (remainingSec > 0) {
-              remainingSec--;
-              timerDisplay.textContent = formatTime(remainingSec);
-            } else {
-              clearInterval(timerInterval);
-              timerInterval = null;
-              alert("200分が経過しました！試験終了です。");
-            }
-          }, 1000);
-        }
-      });
-
-      timerResetBtn.addEventListener("click", () => {
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
-        remainingSec = 200 * 60;
-        timerDisplay.textContent = formatTime(remainingSec);
-        timerStartBtn.textContent = "開始";
       });
 
       // Initial Load from Hash or First Doc

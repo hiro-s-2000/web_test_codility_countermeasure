@@ -72,6 +72,12 @@
     .clock.is-over { color: var(--bad); }
     .clock.is-ok { color: var(--green); }
     .clock.is-held { color: #e3b341; }
+    .clocks { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+    .task-clock, .exam-timer { display: flex; align-items: center; gap: 6px; }
+    .clock-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
+    .exam-timer { flex-wrap: wrap; }
+    .exam-timer button { min-height: 0; padding: 2px 7px; font-size: 13px; }
+    .exam-status { color: var(--bad); font-size: 13px; }
     #app {
       flex: 1;
       min-height: 0;
@@ -342,7 +348,16 @@
       <a class="nav" href="./reading-lab.html">読解練習</a>
       <a class="nav" href="./result-review.html">結果を分析</a>
     </div>
-    <span class="clock" id="clock" aria-live="polite">--:--</span>
+    <div class="clocks">
+      <div class="task-clock"><span class="clock-label">問題ごと</span><span class="clock" id="clock" aria-live="polite">--:--</span></div>
+      <div class="exam-timer" aria-label="全体の200分タイマー">
+        <span class="clock-label">全体</span>
+        <span class="clock" id="examTimerDisplay">200:00</span>
+        <button type="button" id="examTimerStart">開始</button>
+        <button type="button" id="examTimerReset">リセット</button>
+        <span class="exam-status" id="examTimerStatus" role="status"></span>
+      </div>
+    </div>
     <div class="top-right">
       <span class="submit-look" title="この練習ページは答案を提出しません">提出はしません</span>
     </div>
