@@ -100,6 +100,7 @@
   var solveHighlightActive = false;
   var solveHighlightTimer = 0;
   var highlightGen = 0;
+  var writingAmberAt = -1;
 
   function showSubmitStatus(message) {
     submitStatus.textContent = message;
@@ -173,15 +174,44 @@
     toggle.textContent = statementCollapsed ? "問題文を開く" : "問題文を閉じる";
   }
 
-  function markAmberLines() {
+  function writingLineIndex(pos, from, to, count) {
+    if (count <= 0) return -1;
+    if (count === 1) return 0;
+    var span = to - from;
+    var t = span <= 0 ? 0 : (pos - from) / span;
+    if (t < 0) t = 0;
+    if (t > 0.999) t = 0.999;
+    return Math.floor(t * count);
+  }
+
+  function showWritingLine(pos, from, to) {
+    if (!statement || !solveHighlightActive) return;
     var lines = statement.querySelectorAll(".stmt-line");
+    var at = writingLineIndex(pos, from, to, lines.length);
     var i;
-    if (!lines.length) {
+    if (at < 0) {
       var title = statement.querySelector("h1");
-      if (title) title.classList.add("is-amber");
+      if (title && !title.classList.contains("is-amber")) {
+        title.classList.add("is-amber");
+        scrollAmberSoon();
+      }
       return;
     }
-    for (i = 0; i < lines.length; i += 1) lines[i].classList.add("is-amber");
+    if (at === writingAmberAt && lines[at] && lines[at].classList.contains("is-amber")) return;
+    writingAmberAt = at;
+    for (i = 0; i < lines.length; i += 1) lines[i].classList.toggle("is-amber", i === at);
+    var titles = statement.querySelectorAll("h1.is-amber");
+    for (i = 0; i < titles.length; i += 1) titles[i].classList.remove("is-amber");
+    scrollAmberSoon();
+  }
+
+  function clearWritingAmber() {
+    writingAmberAt = -1;
+    if (!statement) return;
+    statement.classList.remove("is-solving");
+    var nodes = statement.querySelectorAll(".is-amber");
+    var i;
+    for (i = 0; i < nodes.length; i += 1) nodes[i].classList.remove("is-amber");
   }
 
   function scrollAmberIntoView() {
@@ -227,7 +257,7 @@
     applyStatementCollapse();
   }
 
-  function beginSolveHighlight() {
+  function forceStatementClosed() {
     highlightGen += 1;
     window.clearTimeout(solveHighlightTimer);
     solveHighlightTimer = 0;
@@ -235,10 +265,13 @@
     solveHighlightActive = true;
     userToggledDuringRun = false;
     statementCollapsed = true;
-    statement.classList.add("is-solving");
     applyStatementCollapse();
-    markAmberLines();
-    scrollAmberSoon();
+  }
+
+  function beginWritingHighlight() {
+    forceStatementClosed();
+    writingAmberAt = -1;
+    statement.classList.add("is-solving");
   }
 
   function endSolveHighlight(delay) {
@@ -310,9 +343,10 @@
     }
     statement.appendChild(body);
     applyStatementCollapse();
-    if (solveHighlightActive) {
+    if (solveHighlightActive && writingAmberAt >= 0) {
       statement.classList.add("is-solving");
-      markAmberLines();
+      var kept = statement.querySelectorAll(".stmt-line");
+      if (kept[writingAmberAt]) kept[writingAmberAt].classList.add("is-amber");
       scrollAmberSoon();
     }
     renderReadingQuestions(task);
@@ -551,7 +585,6 @@
   async function debugTests(source, tests, token, clock) {
     results.textContent = "";
     setRunning(true);
-    beginSolveHighlight();
     setHot("");
     placeCurrentLine(0);
     renderGutter({}, 0);
@@ -860,7 +893,9 @@
     var pauses = 0;
     var lastPause = -500;
     try {
+      beginWritingHighlight();
       var i = start;
+      showWritingLine(i, start, end);
       while (i < end) {
         if (session !== token) return false;
         if (frame && frame.sigStart > 0 && i >= frame.sigStart && i < frame.bodyStart) {
@@ -868,6 +903,7 @@
           codeBox.value = renderFramed(source, i, frame);
           renderGutter({}, 0);
           placeCaret(i);
+          showWritingLine(i, start, end);
           continue;
         }
         var bound = (frame && frame.sigStart > 0 && i < frame.sigStart) ? frame.sigStart : end;
@@ -887,6 +923,7 @@
             if (!heldKey) return false;
           }
           i = steps[steps.length - 1].end;
+          showWritingLine(i, start, end);
           continue;
         }
         var kind = pauses < 4 && i - lastPause > 180 ? lineKind(source, i) : "";
@@ -912,11 +949,13 @@
         var stepped = await wait(delay, token);
         if (!stepped) return false;
         i += 1;
+        showWritingLine(i, start, end);
       }
       codeBox.value = source;
       renderGutter({}, 0);
       return session === token;
     } finally {
+      clearWritingAmber();
       idleEditor();
     }
   }
@@ -1215,7 +1254,7 @@
     if (!task.runnable || !(task.tests || []).length) {
       run.error = "この問題は練習用実行機で実行できません。外部IDEで確認してください。";
     } else {
-      beginSolveHighlight();
+      forceStatementClosed();
       setRunning(true);
       try {
         var outcome = root.Kotlite.runTests(source, task.tests);
