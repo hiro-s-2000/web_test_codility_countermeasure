@@ -126,16 +126,16 @@
     .topbar-right {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 2px;
       margin-left: auto;
     }
     /* Header TOC toggle: same footprint as the ☰ menu button */
     .toc-header-btn {
       flex-shrink: 0;
-      margin-left: 10px;
+      margin-left: 12px;
       font-size: 12px;
       font-weight: 700;
-      padding: 6px 5px;
+      padding: 6px 10px;
       line-height: 19px;
       white-space: nowrap;
     }
@@ -150,13 +150,14 @@
       border: 1px solid var(--border-color);
       color: var(--text-primary);
       border-radius: 6px;
-      padding: 6px 10px;
+      padding: 2px;
+      margin: 0;
       font-size: 12.5px;
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 2px;
     }
     .icon-btn:hover {
       background: var(--bg-hover);
@@ -243,14 +244,15 @@
     .filter-tabs {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 4px;
+      gap: 2px;
     }
     .filter-tab {
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
       border-radius: 5px;
-      padding: 5px 4px;
+      padding: 2px;
+      margin: 0;
       font-size: 11px;
       cursor: pointer;
       text-align: center;
@@ -272,7 +274,7 @@
     }
     .accordion-toolbar-btns {
       display: flex;
-      gap: 6px;
+      gap: 2px;
     }
     .mini-link-btn {
       background: none;
@@ -280,7 +282,8 @@
       color: var(--accent);
       font-size: 11px;
       cursor: pointer;
-      padding: 2px 4px;
+      padding: 2px;
+      margin: 0;
       border-radius: 4px;
     }
     .mini-link-btn:hover {
@@ -553,7 +556,7 @@
     }
     .doc-actions {
       display: flex;
-      gap: 8px;
+      gap: 2px;
       flex-wrap: wrap;
     }
     .drawer-scrim {
@@ -646,13 +649,14 @@
     }
     .copy-code-btn {
       position: absolute;
-      top: 8px;
-      right: 8px;
+      top: 6px;
+      right: 6px;
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       color: var(--text-secondary);
       border-radius: 5px;
-      padding: 3px 8px;
+      padding: 2px;
+      margin: 0;
       font-size: 11px;
       cursor: pointer;
     }
@@ -858,14 +862,15 @@
     .code-modal-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 2px;
     }
     .code-modal-close {
       background: var(--bg-tertiary);
       border: 1px solid var(--border-color);
       color: var(--text-primary);
       border-radius: 6px;
-      padding: 6px 12px;
+      padding: 2px;
+      margin: 0;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -941,7 +946,7 @@
         max-width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
-        gap: 6px;
+        gap: 2px;
       }
       .brand {
         white-space: nowrap;
@@ -953,11 +958,10 @@
         min-width: 44px;
         min-height: 44px;
       }
-      .menu-btn, .icon-btn, .filter-tab,
-      .accordion-header, .mini-link-btn, .copy-code-btn, .nav-card {
+      .menu-btn,
+      .accordion-header {
         min-height: 44px;
       }
-      .icon-btn { min-width: 44px; }
       .sidebar {
         position: absolute;
         top: 0;
@@ -994,8 +998,9 @@
       .code-modal-actions { flex-wrap: wrap; width: 100%; }
       .code-modal-close {
         flex: 1 1 100%;
-        min-height: 44px;
-        font-size: 16px;
+        min-height: 0;
+        padding: 2px;
+        font-size: 14px;
       }
       .sidebar-resizer { display: none; }
       .accordion-toolbar > span { display: none; }
@@ -1043,20 +1048,20 @@
         display: flex;
         align-items: center;
       }
-      .sub-toggle-btn { min-height: 44px; padding: 6px 10px; font-size: 13px; }
+      .sub-toggle-btn { min-height: 0; padding: 2px; font-size: 12px; }
       .nav-footer {
         position: static;
         flex-shrink: 0;
         flex-direction: row;
-        gap: 8px;
+        gap: 2px;
         margin: 0;
-        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
         background: var(--bg-secondary);
         border-top: 1px solid var(--border-color);
         z-index: 180;
       }
       .nav-footer:empty { display: none; }
-      .nav-card { min-width: 0; padding: 8px 10px; }
+      .nav-card { min-width: 0; padding: 2px; }
       .nav-card-label { font-size: 10.5px; }
       .nav-card-title {
         font-size: 12.5px;
@@ -1065,17 +1070,18 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      button:not(#menuBtn, .line-no, .filter-tab, .accordion-header, .mini-link-btn, .sub-toggle-btn), a.icon-btn {
+      button:not(#menuBtn, #tocOpenBtn, .line-no, .accordion-header), a.icon-btn {
         min-width: 0;
         min-height: 0;
         max-width: 100%;
         padding: 2px;
+        margin: 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
       .icon-btn { display: inline-block; line-height: normal; }
-      .menu-btn, .icon-btn { min-width: 44px; }
+      .menu-btn { min-width: 44px; }
       .nav-card { min-height: 0; padding: 2px; }
       .nav-card-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .brand-badge { display: none; }

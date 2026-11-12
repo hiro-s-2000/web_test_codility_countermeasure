@@ -25,22 +25,23 @@
       color: var(--text);
     }
     header, button, select { font: inherit; }
-    a.nav, button {
+    a.nav, button, select {
       color: var(--text);
       background: #fff;
       border: 1px solid var(--line);
-      border-radius: 8px;
-      min-height: 44px;
-      padding: 8px 12px;
+      border-radius: 6px;
+      min-height: 0;
+      margin: 0;
+      padding: 2px;
     }
     a.nav { display: inline-flex; align-items: center; text-decoration: none; }
     button { cursor: pointer; }
     header {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 2px;
       align-items: center;
-      padding: 12px 20px;
+      padding: 6px 12px;
       background: #fff;
       border-bottom: 1px solid var(--line);
     }
@@ -49,7 +50,7 @@
     h2 { margin: 0 0 12px; font-size: 16px; }
     .kicker { margin: 0; color: var(--muted); }
     .sub { color: #2458c5; font-size: 14px; }
-    .tabs { display: flex; gap: 16px; margin: 20px 0; border-bottom: 1px solid var(--line); }
+    .tabs { display: flex; gap: 2px; margin: 12px 0; border-bottom: 1px solid var(--line); }
     .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
     .tabs button.is-on { border-bottom-color: var(--ink); font-weight: 700; }
     .grid { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 16px; }
@@ -112,7 +113,7 @@
       line-height: 1.45;
       overflow: auto;
     }
-    .view-switch { display: flex; gap: 8px; margin: 8px 0; }
+    .view-switch { display: flex; gap: 2px; margin: 4px 0; }
     .view-switch button.is-on { background: var(--ink); color: #fff; }
     #timePane ol { margin: 0; padding-left: 1.2em; }
     #timePane li { margin: 8px 0; }

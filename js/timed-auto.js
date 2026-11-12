@@ -13,14 +13,12 @@
   var patternIndex = 0;
   var patternLocked = false;
   var PATTERN_STORE = "timed-rehearsal-pattern-v1";
-  var LANG_STORE = "timed-rehearsal-lang-v1";
-  var statementLang = rehearsal ? "en" : "ja";
-  if (rehearsal) {
-    try {
-      var savedLang = sessionStorage.getItem(LANG_STORE);
-      if (savedLang === "ja" || savedLang === "en") statementLang = savedLang;
-    } catch (error) { /* English stays the default. */ }
-  }
+  var LANG_STORE = rehearsal ? "timed-rehearsal-lang-v1" : "timed-practice-lang-v1";
+  var statementLang = "en";
+  try {
+    var savedLang = sessionStorage.getItem(LANG_STORE);
+    if (savedLang === "ja" || savedLang === "en") statementLang = savedLang;
+  } catch (error) { /* English stays the default. */ }
 
   function taskListFor(index) {
     var pattern = examPatterns[index];
@@ -214,6 +212,8 @@
   function statementTitle(task) {
     if (!task) return "";
     if (statementLang === "en") {
+      var builtInTitle = task.text && task.text.en && task.text.en.title;
+      if (builtInTitle) return builtInTitle;
       var extra = root.EXAM_STATEMENTS_EN && root.EXAM_STATEMENTS_EN[task.id];
       if (extra && extra.title) return extra.title;
     }
@@ -274,7 +274,7 @@
       seen[name].forEach(function (task) {
         var option = document.createElement("option");
         option.value = task.id;
-        option.textContent = task.title + (runnable(task) ? "" : "（実行対象外）");
+        option.textContent = statementTitle(task) + (runnable(task) ? "" : statementChrome().skipped);
         group.appendChild(option);
       });
       pick.appendChild(group);
@@ -285,7 +285,7 @@
     var slot = document.getElementById("langSlot");
     var sel = document.getElementById("statementLangPick");
     if (!sel) return;
-    if (slot) slot.hidden = !rehearsal;
+    if (slot) slot.hidden = false;
     sel.value = statementLang === "ja" ? "ja" : "en";
     sel.disabled = !!(pick && pick.disabled);
   }
@@ -604,7 +604,7 @@
     if (resetTestFileBtn) resetTestFileBtn.disabled = busy;
     if (runCustomBtn) runCustomBtn.disabled = busy;
     document.getElementById("runLook").disabled = busy;
-    if (rehearsal) paintPatterns();
+    paintPatterns();
   }
 
   function formatClock(ms) {
@@ -1569,6 +1569,7 @@
     if (targetY < codeBox.scrollTop + pad || targetY > codeBox.scrollTop + viewH - lineHeight) {
       codeBox.scrollTop = Math.min(maxScroll, Math.max(0, targetY - viewH + lineHeight + pad));
     }
+    gutter.scrollTop = codeBox.scrollTop;
     var x = targetX - codeBox.scrollLeft;
     var y = targetY - codeBox.scrollTop;
     if (x < 2) x = 2;
@@ -2373,7 +2374,6 @@
   if (rehearsal) {
     var readingSection = document.getElementById("readingSection");
     if (readingSection) readingSection.hidden = true;
-    if (solveAll) solveAll.textContent = "この5問のうち実行できる問題を順に解く";
   }
   var patternPick = document.getElementById("patternPick");
   if (patternPick) {

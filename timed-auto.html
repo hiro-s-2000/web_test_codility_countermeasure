@@ -790,7 +790,7 @@
     <div class="exam-bar">
       <div class="top-left">
         <a class="nav" href="./index.html">ポータルへ戻る</a>
-        <span class="lang-slot" id="langSlot" hidden>
+        <span class="lang-slot" id="langSlot">
           <span class="lang-sizer" aria-hidden="true">結果を分析</span>
           <select id="statementLangPick" aria-label="問題文の言語">
             <option value="en">English</option>
@@ -823,9 +823,11 @@
       <label class="task-field">Task
         <select id="taskPick" aria-label="問題"></select>
       </label>
-      <button type="button" id="solveOne">この問題を自動で解く</button>
-      <button type="button" id="solveAll">実行できる問題を順に解く</button>
-      <button type="button" id="stopBtn" disabled>停止</button>
+      <div class="solve-actions">
+        <button type="button" id="solveOne">自動で解く</button>
+        <button type="button" id="solveAll">実行できる問題を順に解く</button>
+        <button type="button" id="stopBtn" disabled>停止</button>
+      </div>
     </div>
   </header>
   <main id="app">

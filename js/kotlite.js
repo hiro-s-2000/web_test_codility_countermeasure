@@ -1321,6 +1321,7 @@
         ok: ok,
         expected: test.expect,
         actual: encode(actual),
+        output: ctx.output.slice(),
         message: ok ? "" : test.because || ""
       });
       if (!ok && opts.stopOnFail) break;
@@ -1350,6 +1351,7 @@
       ok: ok,
       expected: session.test.expect,
       actual: encode(actual),
+      output: ctx.output.slice(),
       message: ok ? "" : session.test.because || ""
     }]);
     session.ok = ok;
