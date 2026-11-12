@@ -366,6 +366,17 @@
         }
       };
     }
+    var enExtra = root.EXAM_STATEMENTS_EN && root.EXAM_STATEMENTS_EN[task.id];
+    if (!task.text.en && enExtra && enExtra.sentences && enExtra.sentences.length) {
+      task.text.en = {
+        title: enExtra.title || task.title,
+        sentences: enExtra.sentences,
+        example: enExtra.example || "",
+        assumptions: enExtra.assumptions || []
+      };
+    } else if (task.text.en && enExtra && enExtra.title && !task.text.en.title) {
+      task.text.en.title = enExtra.title;
+    }
     if (!task.group) task.group = "練習";
     if (task.runnable == null) task.runnable = true;
     if (!task.tests) task.tests = [];
@@ -384,6 +395,11 @@
   tasks.forEach(function (task) {
     var found = (root.LAB_ANSWERS || {})[task.id];
     task.answer = found && found.code ? found : null;
+    var ci = root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.tasks && root.CODE_IMAGINE_DATA.tasks[task.id];
+    task.codeImagine = ci || null;
+    if ((!task.skeleton || !task.skeleton.length) && ci && ci.blueprint) {
+      task.skeleton = ci.blueprint.slice();
+    }
   });
 
   function normalizeAnswer(value) {
@@ -484,28 +500,59 @@
 
   if (typeof document === "undefined" || root.SKIP_READING_LAB_BOOT) return;
 
-  var STORE = "reading-lab-v2";
+  var STORE = "reading-lab-v3";
   var stepTimer = 0;
 
+  var SIGNAL_REGEX = /\b(contiguous slices?|contiguous subarray|contiguous|at least|at most|minimize the maximum|inclusive|half-open|odd number of times|even number of times|non-overlapping|simultaneously|4-directionally|prerequisite|cycle|least recently used|LRU|leading zeros?|divisors?|modulo|cooldown|1,000,000,000|10,000,000,000|1,048,575|returns -1)\b/gi;
+
   function emptyState() {
-    return { taskId: tasks[0].id, lang: "ja", theme: "dark", solved: {}, code: {}, imagine: {}, breaks: {}, answerOpen: {} };
+    return {
+      taskId: tasks[0].id,
+      langMode: "en-peek",
+      freeUnlock: false,
+      theme: "dark",
+      solved: {},
+      patternOk: {},
+      trapOk: {},
+      blockStep: {},
+      peeked: {},
+      code: {},
+      imagine: {},
+      breaks: {},
+      answerOpen: {}
+    };
   }
 
   function loadState() {
     var state = emptyState();
     try {
-      var raw = localStorage.getItem(STORE) || localStorage.getItem("reading-lab-v1");
-      if (!raw) return state;
-      var data = JSON.parse(raw);
-      if (!data || typeof data !== "object") return state;
-      if (tasks.some(function (t) { return t.id === data.taskId; })) state.taskId = data.taskId;
-      if (data.lang === "en" || data.lang === "ja") state.lang = data.lang;
-      if (data.theme === "light" || data.theme === "dark") state.theme = data.theme;
-      if (data.solved && typeof data.solved === "object") state.solved = data.solved;
-      if (data.code && typeof data.code === "object") state.code = data.code;
-      if (data.imagine && typeof data.imagine === "object") state.imagine = data.imagine;
-      if (data.breaks && typeof data.breaks === "object") state.breaks = data.breaks;
-      if (data.answerOpen && typeof data.answerOpen === "object") state.answerOpen = data.answerOpen;
+      var raw = localStorage.getItem(STORE) || localStorage.getItem("reading-lab-v2") || localStorage.getItem("reading-lab-v1");
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+          if (tasks.some(function (t) { return t.id === data.taskId; })) state.taskId = data.taskId;
+          if (data.langMode === "en-peek" || data.langMode === "en" || data.langMode === "ja") {
+            state.langMode = data.langMode;
+          } else if (data.lang === "en" || data.lang === "ja") {
+            state.langMode = data.lang === "en" ? "en-peek" : "ja";
+          }
+          if (typeof data.freeUnlock === "boolean") state.freeUnlock = data.freeUnlock;
+          if (data.theme === "light" || data.theme === "dark") state.theme = data.theme;
+          if (data.solved && typeof data.solved === "object") state.solved = data.solved;
+          if (data.patternOk && typeof data.patternOk === "object") state.patternOk = data.patternOk;
+          if (data.trapOk && typeof data.trapOk === "object") state.trapOk = data.trapOk;
+          if (data.blockStep && typeof data.blockStep === "object") state.blockStep = data.blockStep;
+          if (data.peeked && typeof data.peeked === "object") state.peeked = data.peeked;
+          if (data.code && typeof data.code === "object") state.code = data.code;
+          if (data.imagine && typeof data.imagine === "object") state.imagine = data.imagine;
+          if (data.breaks && typeof data.breaks === "object") state.breaks = data.breaks;
+          if (data.answerOpen && typeof data.answerOpen === "object") state.answerOpen = data.answerOpen;
+        }
+      }
+      var paramTask = new URLSearchParams(root.location.search).get("task");
+      if (paramTask && tasks.some(function (t) { return t.id === paramTask; })) {
+        state.taskId = paramTask;
+      }
     } catch (e) {
       return emptyState();
     }
@@ -528,6 +575,36 @@
     return tasks[0];
   }
 
+  function hashSeed(str) {
+    var h = 2166136261;
+    var i;
+    for (i = 0; i < str.length; i += 1) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function seededShuffle(items, seedStr) {
+    var arr = items.slice();
+    var s = hashSeed(seedStr) || 1;
+    var i;
+    for (i = arr.length - 1; i > 0; i -= 1) {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      var j = s % (i + 1);
+      var tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    /* Avoid returning exact original order when shuffling code blocks */
+    if (arr.length > 1 && arr.every(function (v, idx) { return v === items[idx]; })) {
+      var first = arr[0];
+      arr[0] = arr[1];
+      arr[1] = first;
+    }
+    return arr;
+  }
+
   function solvedSet(state, task) {
     var list = state.solved[task.id];
     if (!Array.isArray(list)) list = [];
@@ -539,6 +616,20 @@
   function readingDone(state, task) {
     var set = solvedSet(state, task);
     return task.reading.every(function (q) { return set[q.id]; });
+  }
+
+  function patternDone(state, task) {
+    if (!task.codeImagine) return true;
+    return !!state.patternOk[task.id] && !!state.trapOk[task.id];
+  }
+
+  function blocksDone(state, task) {
+    if (!task.codeImagine || !task.codeImagine.blocks) return true;
+    return (state.blockStep[task.id] || 0) >= task.codeImagine.blocks.length;
+  }
+
+  function editorUnlocked(state, task) {
+    return !!state.freeUnlock || readingDone(state, task);
   }
 
   function nextQuestion(state, task) {
@@ -555,6 +646,39 @@
     if (className) node.className = className;
     if (text != null) node.textContent = text;
     return node;
+  }
+
+  function codePre(className, codeText, labelText) {
+    var pre = el("pre", className);
+    if (labelText) {
+      pre.setAttribute("role", "region");
+      pre.setAttribute("aria-label", labelText);
+      pre.setAttribute("tabindex", "0");
+    }
+    var code = el("code", null, codeText);
+    pre.appendChild(code);
+    return pre;
+  }
+
+  function appendHighlightedEnglish(container, text, highlightSignals) {
+    if (!highlightSignals) {
+      container.appendChild(document.createTextNode(text));
+      return;
+    }
+    SIGNAL_REGEX.lastIndex = 0;
+    var last = 0;
+    var m;
+    while ((m = SIGNAL_REGEX.exec(text)) !== null) {
+      if (m.index > last) {
+        container.appendChild(document.createTextNode(text.slice(last, m.index)));
+      }
+      var mark = el("mark", "sig-word", m[0]);
+      container.appendChild(mark);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) {
+      container.appendChild(document.createTextNode(text.slice(last)));
+    }
   }
 
   function scrollInside(container, node) {
@@ -575,21 +699,43 @@
     });
   }
 
+  function buildCommentStarter(task) {
+    var lines = (task.codeImagine && task.codeImagine.blueprint) || task.skeleton || [];
+    if (!lines.length) return task.starter;
+    var commentBlock = lines.map(function (l) { return "    " + l; }).join("\n");
+    var base = task.starter || "";
+    var brace = base.indexOf("{");
+    if (brace === -1) {
+      return lines.join("\n") + "\n" + base;
+    }
+    return base.slice(0, brace + 1) + "\n" + commentBlock + "\n    \n}\n";
+  }
+
   function boot() {
     var state = loadState();
     var feedback = null;
+    var patternFeedback = null;
+    var trapFeedback = null;
+    var blockFeedback = null;
+    var shuffleSalt = 0;
     var runView = null;
     var debugSession = null;
     document.documentElement.setAttribute("data-theme", state.theme);
 
     var app = document.getElementById("app");
     var taskPick = document.getElementById("taskPick");
-    var langJa = document.getElementById("langJa");
-    var langEn = document.getElementById("langEn");
+    var langModePick = document.getElementById("langModePick");
+    var unlockBtn = document.getElementById("unlockBtn");
     var themeBtn = document.getElementById("themeBtn");
+    var toTimedLink = document.getElementById("toTimedLink");
 
     function persist() {
       saveState(state);
+    }
+
+    function peekMapFor(task) {
+      var m = state.peeked[task.id];
+      return m && typeof m === "object" ? m : {};
     }
 
     function renderChrome() {
@@ -610,43 +756,181 @@
         byName[name].forEach(function (task) {
           var option = document.createElement("option");
           option.value = task.id;
-          option.textContent = task.title;
+          var doneAll = readingDone(state, task) && patternDone(state, task) && blocksDone(state, task);
+          option.textContent = (doneAll ? "✓ " : "") + task.title;
           if (task.id === state.taskId) option.selected = true;
           group.appendChild(option);
         });
         taskPick.appendChild(group);
       });
       var current = taskById(state.taskId);
-      langEn.disabled = !current.text.en;
-      langJa.classList.toggle("is-on", state.lang === "ja" || !current.text.en);
-      langEn.classList.toggle("is-on", state.lang === "en" && !!current.text.en);
+      if (!current.text.en && state.langMode !== "ja") {
+        state.langMode = "ja";
+      }
+      if (langModePick) {
+        langModePick.value = state.langMode;
+      }
+      if (unlockBtn) {
+        unlockBtn.textContent = state.freeUnlock ? "すぐ書く: ON" : "すぐ書く: OFF";
+        unlockBtn.classList.toggle("is-on", !!state.freeUnlock);
+      }
+      if (toTimedLink) {
+        toTimedLink.href = "./timed-auto.html?task=" + encodeURIComponent(current.id);
+      }
       themeBtn.textContent = state.theme === "dark" ? "明るい画面" : "暗い画面";
     }
 
-    function renderStatement(task, pack) {
+    function buildJaLookup(task) {
+      var map = {};
+      var ja = task.text.ja;
+      if (!ja) return map;
+      (ja.sentences || []).forEach(function (s) { map[s.id] = s.text; });
+      (ja.assumptions || []).forEach(function (a) { map[a.id] = a.text; });
+      return map;
+    }
+
+    function renderSentenceContent(holder, item, isEn, allowPeek, jaLookup, task) {
+      var textSpan = el("span", null);
+      if (isEn) {
+        textSpan.setAttribute("lang", "en");
+        appendHighlightedEnglish(textSpan, item.text, allowPeek);
+      } else {
+        textSpan.textContent = item.text;
+      }
+      holder.appendChild(textSpan);
+
+      if (isEn && allowPeek && jaLookup[item.id]) {
+        var pmap = peekMapFor(task);
+        var isOpen = !!pmap[item.id];
+        var btn = el("button", "peek-btn", isOpen ? "訳を隠す" : "訳");
+        btn.type = "button";
+        btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        btn.setAttribute("aria-label", item.id + " の日本語訳を表示");
+        btn.addEventListener("click", function () {
+          var cur = peekMapFor(task);
+          var next = {};
+          Object.keys(cur).forEach(function (k) { next[k] = cur[k]; });
+          if (next[item.id]) delete next[item.id];
+          else next[item.id] = true;
+          state.peeked[task.id] = next;
+          persist();
+          render();
+        });
+        holder.appendChild(btn);
+        if (isOpen) {
+          var jaSpan = el("span", "ja-peek", jaLookup[item.id]);
+          jaSpan.setAttribute("lang", "ja");
+          holder.appendChild(jaSpan);
+        }
+      }
+    }
+
+    function renderGlossary() {
+      var glossary = root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.glossary;
+      if (!glossary || !glossary.length) return null;
+      var details = document.createElement("details");
+      details.className = "glossary-box";
+      details.appendChild(el("summary", null, "📖 コピー不要！Codility英語シグナル早見表（英語 → 意味 → Kotlinの型）"));
+      var table = el("table", "glossary-table");
+      table.appendChild(el("caption", null, "試験中に頻出する英語表現と、そこから即座に連想するKotlin実装の対応表です。"));
+      var thead = document.createElement("thead");
+      var hr = document.createElement("tr");
+      ["英語シグナル", "意味", "直結するKotlin構造"].forEach(function (label) {
+        var th = el("th", null, label);
+        th.scope = "col";
+        hr.appendChild(th);
+      });
+      thead.appendChild(hr);
+      table.appendChild(thead);
+      var tbody = document.createElement("tbody");
+      glossary.forEach(function (row) {
+        var tr = document.createElement("tr");
+        var tdEn = el("td", null, row.en);
+        tdEn.setAttribute("lang", "en");
+        tr.appendChild(tdEn);
+        tr.appendChild(el("td", null, row.ja));
+        tr.appendChild(el("td", null, row.kt));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      details.appendChild(table);
+      return details;
+    }
+
+    function renderStatement(task) {
+      var isEn = state.langMode !== "ja" && !!task.text.en;
+      var allowPeek = state.langMode === "en-peek" && isEn;
+      var pack = isEn ? task.text.en : task.text.ja;
+      var jaLookup = buildJaLookup(task);
+
       var pane = el("section", "statement");
       pane.appendChild(el("p", "eyebrow", "Task description"));
-      pane.appendChild(el("h1", null, task.title));
-      pane.appendChild(el("p", "minutes", "目安 " + task.minutes + " 分。Codility と同じ並びの自作文で、公式の文面そのものではありません。"));
+      var headingText = isEn && pack.title ? pack.title : task.title;
+      var h1 = el("h1", null, headingText);
+      if (isEn) h1.setAttribute("lang", "en");
+      pane.appendChild(h1);
+      pane.appendChild(el("p", "minutes", "目安 " + task.minutes + " 分 ｜ グループ: " + task.group + "（公式問題文の転載ではなく練習用の自作文です）"));
+
+      if (isEn) {
+        var bar = el("div", "peek-bar");
+        var peekCount = Object.keys(peekMapFor(task)).length;
+        bar.appendChild(el("span", "peek-stat", allowPeek
+          ? "英語直読トレ中：詰まった文だけ「訳」で確認（チラ見 " + peekCount + " 文）。点線語は解法シグナルです。"
+          : "本番想定モード：和訳ヒントなしで英語原文から直接要件とコードを連想します。"));
+        if (allowPeek && peekCount > 0) {
+          var clearPeek = el("button", "text-btn", "訳をすべて閉じる");
+          clearPeek.type = "button";
+          clearPeek.addEventListener("click", function () {
+            state.peeked[task.id] = {};
+            persist();
+            render();
+          });
+          bar.appendChild(clearPeek);
+        }
+        pane.appendChild(bar);
+      }
+
       pack.sentences.forEach(function (sentence) {
-        var p = el("p", "sentence", sentence.text);
+        var p = el("p", "sentence");
         p.setAttribute("data-sid", sentence.id);
+        renderSentenceContent(p, sentence, isEn, allowPeek, jaLookup, task);
         pane.appendChild(p);
       });
-      pane.appendChild(el("h2", null, "関数"));
-      pane.appendChild(el("pre", "signature", task.signature));
-      pane.appendChild(el("h2", null, "例"));
-      var example = el("pre", "example", pack.example);
-      pane.appendChild(example);
-      pane.appendChild(el("h2", null, "前提"));
+      pane.appendChild(el("h2", null, isEn ? "Function signature" : "関数"));
+      pane.appendChild(codePre("signature", task.signature, "関数の署名"));
+      pane.appendChild(el("h2", null, isEn ? "Example" : "例"));
+      pane.appendChild(codePre("example", pack.example, "入出力の例"));
+      pane.appendChild(el("h2", null, isEn ? "Assumptions" : "前提・制約"));
       var list = el("ul", "assumptions");
       pack.assumptions.forEach(function (item) {
-        var li = el("li", "sentence", item.text);
+        var li = el("li", "sentence");
         li.setAttribute("data-sid", item.id);
+        renderSentenceContent(li, item, isEn, allowPeek, jaLookup, task);
         list.appendChild(li);
       });
       pane.appendChild(list);
+
+      var gl = renderGlossary();
+      if (gl) pane.appendChild(gl);
       return pane;
+    }
+
+    function renderStepStrip(task) {
+      var strip = el("div", "step-strip");
+      var s1 = readingDone(state, task);
+      var s2 = patternDone(state, task);
+      var s3 = blocksDone(state, task);
+      var rows = [
+        { label: "① 急所読解", done: s1, active: !s1 },
+        { label: "② 型と罠特定", done: s2, active: s1 && !s2 },
+        { label: "③ 骨格組立", done: s3, active: s1 && s2 && !s3 },
+        { label: "④ 実装・検証", done: false, active: (s1 && s2 && s3) || state.freeUnlock }
+      ];
+      rows.forEach(function (r) {
+        var pill = el("div", "step-pill" + (r.done ? " is-done" : (r.active ? " is-active" : "")), (r.done ? "✓ " : "") + r.label);
+        strip.appendChild(pill);
+      });
+      return strip;
     }
 
     function renderReading(task) {
@@ -654,8 +938,8 @@
       var done = readingDone(state, task);
       var set = solvedSet(state, task);
       var solvedCount = task.reading.filter(function (q) { return set[q.id]; }).length;
-      card.appendChild(el("h2", null, "1. 問題文を読む"));
-      card.appendChild(el("p", "lead", "コードの前に、返すもの、例の数、境界、条件を拾います。選んだ答えが違うときは、左の文を色で示します。"));
+      card.appendChild(el("h2", null, "1. 問題文から4つの急所を拾う"));
+      card.appendChild(el("p", "lead", "翻訳ツールに頼らず、まず「返すもの・例の数・境界・条件」の4点だけを問題文から抜き出します。間違えると左の根拠文が赤く光ります。"));
       var slots = el("ol", "slots");
       task.reading.forEach(function (q) {
         var li = el("li", set[q.id] ? "is-done" : "", q.slot);
@@ -665,11 +949,10 @@
       card.appendChild(el("p", "progress", "読解 " + solvedCount + " / " + task.reading.length));
 
       if (done) {
-        card.appendChild(el("p", "ok-note", "4問とも拾えました。エディタに書けます。"));
-        var again = el("button", "text-btn", "この問題の読解をはじめから");
+        card.appendChild(el("p", "ok-note", "✓ 4つの急所をすべて把握できました！次は下のカードで「解法の型」を連想します。"));
+        var again = el("button", "text-btn", "読解4問をやり直す");
         again.type = "button";
         again.addEventListener("click", function () {
-          if (!window.confirm("この問題の読解の答えを消して、最初の問いに戻します。")) return;
           state.solved[task.id] = [];
           feedback = null;
           persist();
@@ -680,7 +963,7 @@
       }
 
       var q = nextQuestion(state, task);
-      card.appendChild(el("p", "slot-label", q.slot));
+      card.appendChild(el("p", "slot-label", "確認項目: " + q.slot));
       card.appendChild(el("p", "prompt", q.prompt));
       q.choices.forEach(function (choice) {
         var btn = el("button", "choice", choice.text);
@@ -703,9 +986,9 @@
             stepTimer = window.setTimeout(function () {
               feedback = null;
               render();
-            }, 900);
+            }, 850);
           }
-          renderFeedback(card, statement);
+          renderFeedback(card);
         });
         card.appendChild(btn);
       });
@@ -717,13 +1000,232 @@
       return el("p", item.ok ? "feedback is-ok" : "feedback is-bad", item.why);
     }
 
-    function renderFeedback(card, statement) {
+    function renderFeedback(card) {
       var old = card.querySelector(".feedback");
       if (old) old.remove();
       if (feedback) card.appendChild(feedbackNode(feedback));
-      if (statement && feedback) {
-        /* Focus was marked before this redraw. Restore it on the new statement. */
+    }
+
+    function buildPatternChoices(task) {
+      var all = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.patterns) || {};
+      var ans = task.codeImagine.pattern;
+      var others = Object.keys(all).filter(function (k) { return k !== ans; });
+      var picked = seededShuffle(others, task.id + "-pat").slice(0, 3);
+      picked.push(ans);
+      return seededShuffle(picked, task.id + "-pat-order").map(function (k) {
+        return { id: k, text: all[k] };
+      });
+    }
+
+    function buildTrapChoices(task) {
+      var all = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.traps) || {};
+      var ans = task.codeImagine.trap;
+      var others = Object.keys(all).filter(function (k) { return k !== ans; });
+      var picked = seededShuffle(others, task.id + "-trap").slice(0, 3);
+      picked.push(ans);
+      return seededShuffle(picked, task.id + "-trap-order").map(function (k) {
+        return { id: k, text: all[k] };
+      });
+    }
+
+    function renderPatternBridge(task) {
+      var ci = task.codeImagine;
+      if (!ci) return null;
+      var card = el("section", "card");
+      card.appendChild(el("h2", null, "2. 問題文のシグナルから「解法の型」と「罠」を連想する"));
+      card.appendChild(el("p", "lead", "いきなり書き始めず、問題文のキーワードと制約 N・値域から「どのアルゴリズムを使うか」「Long や境界の罠はどこか」を頭の中で即断します。"));
+
+      var patOk = !!state.patternOk[task.id];
+      var trpOk = !!state.trapOk[task.id];
+      var patMap = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.patterns) || {};
+      var trpMap = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.traps) || {};
+
+      /* Q1: Algorithm Pattern */
+      card.appendChild(el("p", "prompt", "Q1. この問題文から真っ先に思い浮かべる Kotlin の型は？"));
+      if (patOk) {
+        var box1 = el("div", "signal-box");
+        box1.appendChild(el("strong", null, "✓ 解法の型: " + (patMap[ci.pattern] || ci.pattern)));
+        box1.appendChild(el("p", null, "着眼シグナル: " + ci.signal));
+        card.appendChild(box1);
+      } else {
+        buildPatternChoices(task).forEach(function (ch) {
+          var b = el("button", "choice", ch.text);
+          b.type = "button";
+          b.addEventListener("click", function () {
+            if (ch.id === ci.pattern) {
+              state.patternOk[task.id] = true;
+              patternFeedback = null;
+              persist();
+              render();
+            } else {
+              patternFeedback = "「" + ch.text + "」だと制約や問題構造に合いません。問題文の連続性・値域・求める値（最小化/組数/状態遷移）を見直してみましょう。";
+              render();
+            }
+          });
+          card.appendChild(b);
+        });
+        if (patternFeedback) card.appendChild(el("p", "feedback is-bad", patternFeedback));
       }
+
+      /* Q2: Overflow / Boundary Trap */
+      card.appendChild(el("p", "prompt", "Q2. 実装前に必ず警戒すべき「型（Int/Long）・境界・ライフサイクル」の急所は？"));
+      if (trpOk) {
+        var box2 = el("div", "signal-box");
+        box2.appendChild(el("strong", null, "✓ 警戒ポイント: " + (trpMap[ci.trap] || ci.trap)));
+        box2.appendChild(el("p", null, "理由: " + ci.trapWhy));
+        card.appendChild(box2);
+      } else {
+        buildTrapChoices(task).forEach(function (ch) {
+          var b = el("button", "choice", ch.text);
+          b.type = "button";
+          b.addEventListener("click", function () {
+            if (ch.id === ci.trap) {
+              state.trapOk[task.id] = true;
+              trapFeedback = null;
+              persist();
+              render();
+            } else {
+              trapFeedback = "前提（Assumptions）の最大値や区間端・例外条件をもう一度チェックしてみましょう。";
+              render();
+            }
+          });
+          card.appendChild(b);
+        });
+        if (trapFeedback) card.appendChild(el("p", "feedback is-bad", trapFeedback));
+      }
+
+      if (patOk || trpOk) {
+        var resetPat = el("button", "text-btn", "型・罠クイズをやり直す");
+        resetPat.type = "button";
+        resetPat.addEventListener("click", function () {
+          delete state.patternOk[task.id];
+          delete state.trapOk[task.id];
+          patternFeedback = null;
+          trapFeedback = null;
+          persist();
+          render();
+        });
+        card.appendChild(resetPat);
+      }
+      return card;
+    }
+
+    function renderSkeletonBuilder(task) {
+      var ci = task.codeImagine;
+      if (!ci || !ci.blocks || !ci.blocks.length) return null;
+      var card = el("section", "card");
+      var blocks = ci.blocks;
+      var step = state.blockStep[task.id] || 0;
+      if (step > blocks.length) step = blocks.length;
+      var isDone = step >= blocks.length;
+
+      card.appendChild(el("h2", null, "3. 頭の中で Kotlin の「外枠ブロック」を順番に組み立てる"));
+      card.appendChild(el("p", "lead", "白紙のエディタで手が止まらないよう、実装を " + blocks.length + " 個の部品（ガード節・変数 → ループ外枠 → 更新判定 → return）に分けて上から順にタップして並べます。"));
+
+      if (step > 0) {
+        var assembled = el("div", "assembled-box");
+        var i;
+        for (i = 0; i < step; i += 1) {
+          var item = el("div", "assembled-item");
+          item.appendChild(el("div", "assembled-label", "Step " + (i + 1) + ": " + blocks[i].label));
+          item.appendChild(codePre("block-code", blocks[i].code));
+          assembled.appendChild(item);
+        }
+        card.appendChild(assembled);
+      }
+
+      if (!isDone) {
+        var remainingIdx = [];
+        var k;
+        for (k = step; k < blocks.length; k += 1) remainingIdx.push(k);
+        var order = seededShuffle(remainingIdx, task.id + "-blk-" + shuffleSalt);
+        var pool = el("div", "block-pool");
+        order.forEach(function (idx) {
+          var btn = el("button", "block-choice");
+          btn.type = "button";
+          btn.appendChild(codePre("block-code", blocks[idx].code));
+          btn.addEventListener("click", function () {
+            if (idx === step) {
+              state.blockStep[task.id] = step + 1;
+              blockFeedback = null;
+              persist();
+              render();
+            } else {
+              blockFeedback = "その処理の前に置くブロックがあります（ヒント: 次は「" + blocks[step].label + "」です）。";
+              render();
+            }
+          });
+          pool.appendChild(btn);
+        });
+        card.appendChild(pool);
+
+        if (blockFeedback) card.appendChild(el("p", "feedback is-bad", blockFeedback));
+
+        var bar = el("div", "run-bar");
+        var hintBtn = el("button", "run-btn", "1つヒントを進める");
+        hintBtn.type = "button";
+        hintBtn.addEventListener("click", function () {
+          state.blockStep[task.id] = step + 1;
+          blockFeedback = null;
+          persist();
+          render();
+        });
+        bar.appendChild(hintBtn);
+        if (step > 0) {
+          var resetBlk = el("button", "text-btn", "最初から並べ直す");
+          resetBlk.type = "button";
+          resetBlk.addEventListener("click", function () {
+            state.blockStep[task.id] = 0;
+            shuffleSalt += 1;
+            blockFeedback = null;
+            persist();
+            render();
+          });
+          bar.appendChild(resetBlk);
+        }
+        card.appendChild(bar);
+      } else {
+        card.appendChild(el("p", "ok-note", "✓ コード全体の骨格が頭の中で完成しました！本番では以下の3行コメントを最初に打ってから中身を埋めると迷いません。"));
+        var redo = el("button", "text-btn", "骨格ブロックをもう一度シャッフルして練習する");
+        redo.type = "button";
+        redo.addEventListener("click", function () {
+          state.blockStep[task.id] = 0;
+          shuffleSalt += 1;
+          blockFeedback = null;
+          persist();
+          render();
+        });
+        card.appendChild(redo);
+      }
+
+      /* Comment Blueprint Disclosure & 1-click Insert */
+      var bpDetails = document.createElement("details");
+      bpDetails.className = "blueprint-box";
+      bpDetails.open = isDone;
+      bpDetails.appendChild(el("summary", null, "📝 試験開始60秒でエディタに打つ「コメント外枠（// 設計メモ）」を見る"));
+      bpDetails.appendChild(codePre("skeleton", buildCommentStarter(task), "コメント外枠付きの関数テンプレート"));
+      var bpBar = el("div", "run-bar");
+      var insertBp = el("button", "run-btn", "このコメント外枠だけエディタに入れる");
+      insertBp.type = "button";
+      insertBp.addEventListener("click", function () {
+        var target = buildCommentStarter(task);
+        var cur = currentCode(task);
+        if (cur !== task.starter && cur !== target &&
+            !window.confirm("現在のエディタ内容を、コメント外枠だけの状態に置き換えますか？")) return;
+        state.code[task.id] = target;
+        state.freeUnlock = true;
+        debugSession = null;
+        runView = null;
+        persist();
+        render();
+        var ed = document.querySelector("textarea.code");
+        if (ed) ed.focus();
+      });
+      bpBar.appendChild(insertBp);
+      bpDetails.appendChild(bpBar);
+      card.appendChild(bpDetails);
+
+      return card;
     }
 
     function currentCode(task) {
@@ -743,21 +1245,20 @@
 
     function renderEditor(task) {
       var card = el("section", "card");
-      var done = readingDone(state, task);
+      var unlocked = editorUnlocked(state, task);
       var now = runView && runView.paused ? runView.paused.line : 0;
-      card.appendChild(el("h2", null, "2. コードを書いて、止めて、見る"));
-      card.appendChild(el("p", "lead", done
-        ? "署名だけ入っています。中身は自分で打ちます。行番号を押すとその行で止まります。実行はブラウザの中だけで、Int は 32 ビットで一周します。class と data class は動きません。"
-        : "読解の 4 問が終わるまで、ここには打ちません。"));
+      card.appendChild(el("h2", null, "4. 外枠から手で書いて、止めて、見る"));
+      card.appendChild(el("p", "lead", unlocked
+        ? "連想した骨格に沿って自分の手で打ちます。行番号を押すとブレークポイントになり、1行ずつ変数の動きを追えます（ブラウザ内簡易Kotlin実行機のため class 課題は実行対象外です）。"
+        : "上の「1. 急所読解（4問）」を終えるか、右上の「すぐ書く: ON」を押すとエディタに入力できます。"));
       var wrap = el("div", "editor");
       var gutter = el("div", "gutter");
       var area = document.createElement("textarea");
       area.className = "code";
       area.spellcheck = false;
-      area.autocomplete = "off";
       area.setAttribute("aria-label", "Kotlin のエディタ");
       area.value = currentCode(task);
-      area.disabled = !done;
+      area.disabled = !unlocked;
       function syncGutter() {
         var n = Math.max(1, area.value.split("\n").length);
         var marks = breakMap(task);
@@ -768,7 +1269,7 @@
           btn.type = "button";
           btn.className = "line-no" + (marks[i] ? " is-break" : "") + (i === now ? " is-now" : "");
           btn.textContent = String(i);
-          btn.disabled = !done;
+          btn.disabled = !unlocked;
           btn.setAttribute("aria-label", i + "行で止める");
           (function (line) {
             btn.addEventListener("click", function () {
@@ -809,9 +1310,25 @@
       wrap.appendChild(area);
       card.appendChild(wrap);
       syncGutter();
-      var reset = el("button", "text-btn", "この問題のコードを署名だけに戻す");
+
+      var bar = el("div", "run-bar");
+      var putBlueprint = el("button", "text-btn", "コメント外枠(//)を入れる");
+      putBlueprint.type = "button";
+      putBlueprint.disabled = !unlocked;
+      putBlueprint.addEventListener("click", function () {
+        var target = buildCommentStarter(task);
+        var cur = currentCode(task);
+        if (cur !== task.starter && cur !== target &&
+            !window.confirm("エディタをコメント外枠だけの状態にしますか？")) return;
+        state.code[task.id] = target;
+        debugSession = null;
+        runView = null;
+        persist();
+        render();
+      });
+      var reset = el("button", "text-btn", "署名だけに戻す");
       reset.type = "button";
-      reset.disabled = !done;
+      reset.disabled = !unlocked;
       reset.addEventListener("click", function () {
         if (!window.confirm("この問題のエディタを、署名だけの状態に戻します。")) return;
         state.code[task.id] = task.starter;
@@ -820,19 +1337,21 @@
         persist();
         render();
       });
-      card.appendChild(reset);
+      bar.appendChild(putBlueprint);
+      bar.appendChild(reset);
+      card.appendChild(bar);
       return card;
     }
 
     function renderAnswer(task) {
       var card = el("section", "card answer-card");
-      card.appendChild(el("h2", null, "解答コード"));
+      card.appendChild(el("h2", null, "模範解答コードと考え方"));
       if (!task.answer) {
         card.appendChild(el("p", "lead", "この問題の解答コードは、まだ用意していません。"));
         return card;
       }
-      var done = readingDone(state, task);
-      card.appendChild(el("p", "lead", "書けないときに開きます。考え方を読んでから、自分の手で打ち直すと身につきます。"));
+      var unlocked = editorUnlocked(state, task);
+      card.appendChild(el("p", "lead", "どうしても手が止まったときに開き、読んだら閉じて自分の手で外枠から打ち直すと本番で再現できます。"));
       var box = document.createElement("details");
       box.className = "answer";
       box.open = !!state.answerOpen[task.id];
@@ -848,11 +1367,11 @@
       });
       box.appendChild(notes);
       box.appendChild(el("h3", null, "コード"));
-      box.appendChild(el("pre", "skeleton answer-code", task.answer.code));
+      box.appendChild(codePre("skeleton answer-code", task.answer.code, "模範解答のKotlinコード"));
       var bar = el("div", "run-bar");
       var put = el("button", "run-btn", "エディタに入れる");
       put.type = "button";
-      put.disabled = !done;
+      put.disabled = !unlocked;
       put.addEventListener("click", function () {
         var now = currentCode(task);
         if (now !== task.starter && now !== task.answer.code &&
@@ -877,8 +1396,8 @@
       bar.appendChild(put);
       bar.appendChild(copy);
       box.appendChild(bar);
-      if (!done) box.appendChild(el("p", "wait-note", "エディタに入れるのは、読解の 4 問のあとです。コードを読むことは、いつでもできます。"));
-      if (!task.runnable) box.appendChild(el("p", "wait-note", "この問題は class を使うので、このページでは実行できません。読んで、手で打つ練習に使ってください。"));
+      if (!unlocked) box.appendChild(el("p", "lead", "エディタへの反映は読解4問の後（または「すぐ書く: ON」）で使えます。"));
+      if (!task.runnable) box.appendChild(el("p", "lead", "この問題は class 設計課題のためブラウザ内実行機では動きません。骨格連想と手打ち練習に使ってください。"));
       card.appendChild(box);
       return card;
     }
@@ -953,20 +1472,20 @@
 
     function renderRun(task) {
       var card = el("section", "card");
-      var done = readingDone(state, task);
-      card.appendChild(el("h2", null, "3. サンプルを実行する"));
+      var unlocked = editorUnlocked(state, task);
+      card.appendChild(el("h2", null, "5. サンプルを実行して境界を確かめる"));
       if (!task.runnable) {
-        card.appendChild(el("p", "lead", "この問題は class を使うので、このページの実行機では動きません。問題文の読解だけ行い、実装はポータルのコードを開いて読んでください。"));
+        card.appendChild(el("p", "lead", "この問題は class（ViewModel / Interceptor など）を使うためブラウザ内実行機では実行できません。上の骨格ブロック組立で構造を固めたら、ポータルの解説・JUnitテストも確認してください。"));
         var blocked = document.createElement("a");
         blocked.className = "portal-link";
         blocked.href = "./index.html#" + encodeURI(task.portalPath);
-        blocked.textContent = "ポータルの該当ページを開く";
+        blocked.textContent = "ポータルの該当解説ページを開く";
         card.appendChild(blocked);
         return card;
       }
-      card.appendChild(el("p", "lead", "サンプル入力で fun solution を動かします。止めた行の変数が下に出ます。合わない行には、問題文が求める値が出ます。"));
-      if (!done) {
-        card.appendChild(el("p", "wait-note", "読解のあとで開きます。"));
+      card.appendChild(el("p", "lead", "サンプル入力で fun solution を動かします。行番号で止めた時点のローカル変数も確認できます。"));
+      if (!unlocked) {
+        card.appendChild(el("p", "lead", "読解4問の後（または「すぐ書く: ON」）で実行ボタンが使えます。"));
         return card;
       }
       if (!root.Kotlite) {
@@ -1016,29 +1535,24 @@
         card.appendChild(vars);
       }
       if (runView && runView.output && runView.output.length) {
-        card.appendChild(el("pre", "example", runView.output.join("\n")));
+        card.appendChild(codePre("example", runView.output.join("\n"), "標準出力"));
       }
       if (runView && runView.rows && runView.rows.length) {
         var box = el("div", "report");
         runView.rows.forEach(function (row) {
           var line = el("p", row.ok ? "report-line is-ok" : "report-line is-bad");
-          if (row.ok) line.textContent = row.name + " … 返り値 " + shown(row.actual) + " で合っています。";
-          else line.textContent = row.name + " … 動いた結果は " + shown(row.actual) + "、問題文どおりなら " + shown(row.expected) + "。" + (row.message || "");
+          if (row.ok) line.textContent = "✓ " + row.name + " … 返り値 " + shown(row.actual) + " で合っています。";
+          else line.textContent = "✗ " + row.name + " … 結果 " + shown(row.actual) + "（期待値 " + shown(row.expected) + "） " + (row.message || "");
           box.appendChild(line);
         });
         card.appendChild(box);
         var allOk = task.tests && task.tests.length && runView.rows.length === task.tests.length && runView.rows.every(function (row) { return row.ok; });
         if (allOk && !runView.paused) {
-          card.appendChild(el("p", "ok-note", "サンプルは全部、問題文どおりの返り値です。"));
-          if (task.skeleton && task.skeleton.length) {
-            card.appendChild(el("h3", null, "見比べる骨格"));
-            card.appendChild(el("p", "lead", "エディタへは入れません。必要なら、自分のコードへ打ち直してください。"));
-            card.appendChild(el("pre", "skeleton", task.skeleton.join("\n")));
-          }
+          card.appendChild(el("p", "ok-note", "🎉 全サンプル合格です！問題文から直接コードを組み立てられました。"));
           var link = document.createElement("a");
           link.className = "portal-link";
           link.href = "./index.html#" + encodeURI(task.portalPath);
-          link.textContent = "同じ型の例題コードをポータルで開く（答えです）";
+          link.textContent = "ポータルの解説・面接深掘りページを開く";
           card.appendChild(link);
         }
       }
@@ -1048,17 +1562,19 @@
     function render() {
       window.clearTimeout(stepTimer);
       var task = taskById(state.taskId);
-      var pack = task.text[state.lang] || task.text.ja;
       renderChrome();
       app.textContent = "";
-      var statement = renderStatement(task, pack);
+      var statement = renderStatement(task);
       var work = el("div", "work");
-      work.appendChild(el("p", "how", "左が問題文です。先に右の 4 問へ答え、そのあとエディタに書いてサンプルを実行します。"));
-      var readingCard = renderReading(task);
-      work.appendChild(readingCard);
+      work.appendChild(renderStepStrip(task));
+      work.appendChild(renderReading(task));
+      var patternCard = renderPatternBridge(task);
+      if (patternCard) work.appendChild(patternCard);
+      var skelCard = renderSkeletonBuilder(task);
+      if (skelCard) work.appendChild(skelCard);
       work.appendChild(renderEditor(task));
-      work.appendChild(renderAnswer(task));
       work.appendChild(renderRun(task));
+      work.appendChild(renderAnswer(task));
       app.appendChild(statement);
       app.appendChild(work);
       if (feedback) markFocus(statement, focusIdsForCurrent(task), feedback.ok ? "hit" : "miss");
@@ -1068,7 +1584,6 @@
       var q = nextQuestion(state, task);
       if (!q) return [];
       var result = gradeReading(task, q.id, q.answer);
-      /* After a correct answer the question is already stored, so highlight the sentence of the feedback we just showed. */
       if (feedback && feedback.ok) {
         var set = solvedSet(state, task);
         var last = null;
@@ -1082,23 +1597,29 @@
 
     taskPick.addEventListener("change", function () {
       feedback = null;
+      patternFeedback = null;
+      trapFeedback = null;
+      blockFeedback = null;
       runView = null;
       debugSession = null;
       state.taskId = taskPick.value;
-      if (!taskById(state.taskId).text.en) state.lang = "ja";
       persist();
       render();
     });
-    langJa.addEventListener("click", function () {
-      state.lang = "ja";
-      persist();
-      render();
-    });
-    langEn.addEventListener("click", function () {
-      state.lang = "en";
-      persist();
-      render();
-    });
+    if (langModePick) {
+      langModePick.addEventListener("change", function () {
+        state.langMode = langModePick.value;
+        persist();
+        render();
+      });
+    }
+    if (unlockBtn) {
+      unlockBtn.addEventListener("click", function () {
+        state.freeUnlock = !state.freeUnlock;
+        persist();
+        render();
+      });
+    }
     themeBtn.addEventListener("click", function () {
       state.theme = state.theme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", state.theme);

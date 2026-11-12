@@ -504,6 +504,11 @@
   }
 
   function renderStatement(task) {
+    var imagineNav = document.getElementById("imagineNav");
+    if (imagineNav) {
+      imagineNav.hidden = !!rehearsal;
+      if (task && task.id) imagineNav.href = "./reading-lab.html?task=" + encodeURIComponent(task.id);
+    }
     var pack = packOf(task);
     var nextId = task && task.id ? task.id : "";
     if (nextId !== statementTaskId) {
@@ -2390,11 +2395,24 @@
   paintPatterns();
   fillPicker();
   showVars([]);
-  if (tasks[0]) {
-    renderStatement(tasks[0]);
-    ensureTaskTestState(tasks[0]);
-    renderWorkspaceTabs(tasks[0]);
-    showShell(tasks[0]);
+  var initialTask = tasks[0];
+  if (!rehearsal) {
+    try {
+      var requestedId = new URLSearchParams(root.location.search).get("task");
+      if (requestedId) {
+        var matched = taskById(requestedId);
+        if (matched && matched.id === requestedId) {
+          initialTask = matched;
+          if (pick) pick.value = matched.id;
+        }
+      }
+    } catch (error) { /* Keep default first task. */ }
+  }
+  if (initialTask) {
+    renderStatement(initialTask);
+    ensureTaskTestState(initialTask);
+    renderWorkspaceTabs(initialTask);
+    showShell(initialTask);
   } else {
     renderGutter({}, 0);
   }

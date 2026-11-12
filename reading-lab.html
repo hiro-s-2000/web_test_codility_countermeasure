@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>問題文からコードを想像する</title>
+  <title>問題文からコードを想像する | Codility対策ポータル</title>
   <style>
     :root[data-theme="dark"] {
       --bg: #0d1117;
@@ -13,8 +13,11 @@
       --muted: #8b949e;
       --line: #30363d;
       --accent: #2f81f7;
+      --accent-bg: rgba(47, 129, 247, 0.15);
       --green: #3fb950;
       --green-bg: rgba(63, 185, 80, 0.18);
+      --amber: #e3b341;
+      --amber-bg: rgba(227, 179, 65, 0.16);
       --bad: #f85149;
       --bad-bg: rgba(248, 81, 73, 0.16);
       --code: #0d1117;
@@ -27,8 +30,11 @@
       --muted: #57606a;
       --line: #d0d7de;
       --accent: #0969da;
+      --accent-bg: rgba(9, 105, 218, 0.12);
       --green: #1a7f37;
       --green-bg: rgba(26, 127, 55, 0.12);
+      --amber: #9a6700;
+      --amber-bg: rgba(154, 103, 0, 0.12);
       --bad: #cf222e;
       --bad-bg: rgba(207, 34, 46, 0.1);
       --code: #ffffff;
@@ -46,56 +52,132 @@
     header {
       display: flex;
       flex-wrap: wrap;
-      gap: 2px;
+      gap: 4px;
       align-items: center;
       padding: 4px 8px;
       border-bottom: 1px solid var(--line);
       background: var(--panel);
     }
-    .back, button, .portal-link {
+    .back, button, select, .portal-link {
       font: inherit;
       color: var(--text);
       background: var(--panel-2);
       border: 1px solid var(--line);
       border-radius: 6px;
       text-decoration: none;
-      min-height: 0;
+      min-height: 28px;
       margin: 0;
-      padding: 2px;
+      padding: 3px 8px;
       cursor: pointer;
     }
-    .back { display: inline-flex; align-items: center; }
-    #taskButtons { display: flex; flex-wrap: wrap; gap: 2px; }
-    button.is-on, .task-btn.is-on { border-color: var(--accent); background: rgba(47, 129, 247, 0.15); }
+    .back, .portal-link { display: inline-flex; align-items: center; }
+    button.is-on { border-color: var(--accent); background: var(--accent-bg); }
+    button:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible, textarea:focus-visible, pre:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
     .spacer { flex: 1; }
-    h1 { font-size: 22px; margin: 0 0 8px; }
-    h2 { font-size: 16px; margin: 18px 0 8px; }
-    h3 { font-size: 15px; margin: 16px 0 8px; }
-    p { line-height: 1.65; }
+    .picker { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; }
+    .picker select { font-size: 14px; max-width: 52vw; }
+    h1 { font-size: 21px; margin: 0 0 6px; line-height: 1.3; }
+    h2 { font-size: 16px; margin: 16px 0 8px; }
+    h3 { font-size: 14.5px; margin: 12px 0 6px; }
+    p { line-height: 1.6; margin: 0 0 10px; }
     #app {
       flex: 1;
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+      grid-template-columns: minmax(300px, 0.95fr) minmax(340px, 1.05fr);
     }
     .statement, .work { min-height: 0; overflow: auto; }
-    .statement { padding: 20px 22px 40px; border-right: 1px solid var(--line); }
-    .work { padding: 16px 16px 48px; background: var(--bg); }
-    .eyebrow, .minutes, .lead, .how, .progress, .slot-label { color: var(--muted); }
-    .how { margin-top: 0; }
-    .sentence { margin: 0 0 12px; padding: 2px 4px; border-radius: 4px; }
+    .statement { padding: 16px 20px 40px; border-right: 1px solid var(--line); }
+    .work { padding: 14px 16px 48px; background: var(--bg); }
+    .eyebrow, .minutes, .lead, .how, .progress, .slot-label, .peek-stat { color: var(--muted); font-size: 13.5px; }
+    .peek-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 6px 10px;
+      margin: 0 0 12px;
+      border-radius: 6px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .sentence { margin: 0 0 10px; padding: 3px 6px; border-radius: 4px; line-height: 1.65; }
     .sentence.is-hit { background: var(--green-bg); }
     .sentence.is-miss { background: var(--bad-bg); }
-    .signature, .example, .skeleton, .gutter, .code {
+    .peek-btn {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 1px 6px;
+      margin-left: 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      color: var(--accent);
+      border-color: var(--line);
+      vertical-align: baseline;
+    }
+    .peek-btn[aria-expanded="true"] { background: var(--accent-bg); border-color: var(--accent); }
+    .ja-peek {
+      display: block;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-left: 3px solid var(--accent);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 13.5px;
+      border-radius: 0 4px 4px 0;
+    }
+    mark.sig-word {
+      background: var(--amber-bg);
+      color: inherit;
+      padding: 0 3px;
+      border-radius: 3px;
+      border-bottom: 1px dashed var(--amber);
+    }
+    .signature, .example, .skeleton, .gutter, .code, .block-code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 14px;
+      font-size: 13.5px;
     }
     .signature, .example, .skeleton {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px 12px;
       white-space: pre-wrap;
+      margin: 0 0 10px;
+    }
+    .signature code, .example code, .skeleton code, .block-code code { font: inherit; }
+    .step-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .step-pill {
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      font-size: 12.5px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .step-pill.is-done {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-bg);
+      font-weight: 600;
+    }
+    .step-pill.is-active {
+      border-color: var(--accent);
+      color: var(--text);
+      font-weight: 600;
     }
     .card {
       background: var(--panel);
@@ -105,22 +187,92 @@
       margin-bottom: 12px;
     }
     .card h2 { margin-top: 0; }
-    .slots { margin: 8px 0 12px; padding-left: 1.2em; }
-    .slots li.is-done { color: var(--green); }
-    .prompt { font-size: 17px; }
-    .choice, .run-btn, .text-btn { display: block; width: 100%; text-align: left; margin-top: 2px; }
-    .run-btn { text-align: center; border-color: var(--accent); }
-    .run-bar { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
-    .run-bar .run-btn { width: auto; }
+    .slots { margin: 6px 0 10px; padding-left: 1.3em; }
+    .slots li.is-done { color: var(--green); font-weight: 600; }
+    .prompt { font-size: 15.5px; font-weight: 600; margin: 4px 0 8px; }
+    .choice, .run-btn, .text-btn, .block-choice {
+      display: block;
+      width: 100%;
+      text-align: left;
+      margin-top: 6px;
+      padding: 7px 10px;
+      line-height: 1.45;
+    }
+    .choice.is-picked-ok { border-color: var(--green); background: var(--green-bg); }
+    .run-btn { text-align: center; border-color: var(--accent); width: auto; margin-top: 0; }
+    .run-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .vars { margin: 8px 0; padding-left: 1.2em; }
-    .text-btn { width: auto; margin-top: 2px; }
-    .answer summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+    .text-btn { width: auto; display: inline-flex; align-items: center; }
+    .signal-box {
+      margin: 8px 0;
+      padding: 8px 10px;
+      border-radius: 6px;
+      background: var(--panel-2);
+      border-left: 3px solid var(--green);
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    .assembled-box {
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--code);
+      border: 1px solid var(--line);
+    }
+    .assembled-item {
+      padding: 6px 8px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      border-left: 3px solid var(--green);
+      background: var(--panel);
+    }
+    .assembled-item:last-child { margin-bottom: 0; }
+    .assembled-label { font-size: 12px; color: var(--green); font-weight: 600; margin-bottom: 2px; }
+    .block-code { margin: 0; white-space: pre-wrap; }
+    .block-pool { display: grid; gap: 6px; margin-top: 8px; }
+    .block-choice {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .block-choice:hover:not(:disabled) { border-color: var(--accent); }
+    .block-choice pre { margin: 0; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; }
+    details.answer, details.glossary-box, details.blueprint-box {
+      margin-top: 10px;
+      border-top: 1px solid var(--line);
+      padding-top: 6px;
+    }
+    details summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 6px 0;
+    }
+    .glossary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      margin-top: 6px;
+    }
+    .glossary-table caption {
+      text-align: left;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .glossary-table th, .glossary-table td {
+      border: 1px solid var(--line);
+      padding: 5px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .glossary-table th { background: var(--panel-2); }
     .answer-notes { margin: 6px 0 10px; padding-left: 1.2em; }
     .answer-code { overflow-x: auto; white-space: pre; }
     button:disabled { opacity: 0.55; cursor: default; }
-    .feedback { padding: 8px 10px; border-radius: 6px; }
+    .feedback { padding: 8px 10px; border-radius: 6px; margin-top: 8px; }
     .feedback.is-ok, .ok-note, .report-line.is-ok { color: var(--green); }
     .feedback.is-bad, .report-line.is-bad { color: var(--bad); }
+    .feedback.is-ok { background: var(--green-bg); }
+    .feedback.is-bad { background: var(--bad-bg); }
     .editor {
       display: grid;
       grid-template-columns: auto 1fr;
@@ -129,19 +281,6 @@
       overflow: hidden;
       background: var(--code);
       min-height: 220px;
-    }
-    .picker { display: flex; align-items: center; gap: 2px; font-size: 16px; }
-    .picker select {
-      font: inherit;
-      font-size: 16px;
-      color: var(--text);
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      min-height: 0;
-      margin: 0;
-      padding: 2px;
-      max-width: 62vw;
     }
     .gutter {
       margin: 0;
@@ -155,9 +294,9 @@
     }
     .gutter button.line-no {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.45;
-      height: calc(16px * 1.45);
+      height: calc(15px * 1.45);
       min-height: 0;
       padding: 0 8px;
       border: 0;
@@ -166,7 +305,7 @@
       color: var(--muted);
       text-align: right;
     }
-    .gutter button.line-no.is-break { color: var(--bad); }
+    .gutter button.line-no.is-break { color: var(--bad); font-weight: 700; }
     .gutter button.line-no.is-now { background: rgba(47, 129, 247, 0.35); }
     .code {
       margin: 0;
@@ -177,58 +316,52 @@
       background: var(--code);
       color: var(--text);
       line-height: 1.45;
-      font-size: 16px;
+      font-size: 15px;
     }
-    .imagine-row { display: grid; gap: 4px; margin-top: 10px; }
-    .imagine-prompt { font-size: 14px; }
-    input[type="text"] {
-      font: inherit;
-      font-size: 16px;
-      color: var(--text);
-      background: var(--code);
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      min-height: 44px;
-      padding: 8px 10px;
-    }
-    .portal-link { display: inline-flex; align-items: center; margin-top: 2px; }
-    @media (max-width: 820px) {
+    .portal-link { margin-top: 6px; }
+    @media (max-width: 860px) {
       #app { display: block; }
       .statement, .work { overflow: visible; }
-      .statement { border-right: 0; border-bottom: 1px solid var(--line); }
+      .statement { border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 14px 24px; }
+      .work { padding: 12px 14px 36px; }
       body { height: auto; }
-      button:not(.line-no), select, .back, .portal-link {
-        min-width: 0;
-        min-height: 0;
-        max-width: 100%;
-        padding: 2px;
-        margin: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+      .step-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      header { gap: 3px; padding: 4px 6px; }
+      header .back, header button, header select {
+        padding: 3px 6px;
+        font-size: 13px;
       }
-      .choice, .run-btn, .text-btn, .portal-link { margin-top: 2px; }
-      .run-bar .run-btn { margin-top: 0; }
-      .back, .portal-link { display: inline-block; line-height: normal; }
-      .gutter button.line-no { padding: 0 2px; }
+      .picker select { max-width: 58vw; }
+    }
+    @media (pointer: coarse) {
+      .choice, .block-choice, .run-btn { min-height: 36px; }
     }
   </style>
 </head>
 <body>
   <header>
     <a class="back" href="./index.html">ポータルへ戻る</a>
-    <label class="picker">問題
-      <select id="taskPick" aria-label="問題を選ぶ"></select>
+    <a class="back" id="toTimedLink" href="./timed-auto.html">制限時間で解く</a>
+    <label class="picker" for="taskPick">問題
+      <select id="taskPick"></select>
     </label>
     <span class="spacer"></span>
-    <button type="button" id="langJa">日本語</button>
-    <button type="button" id="langEn">English</button>
+    <label class="picker" for="langModePick">問題文
+      <select id="langModePick">
+        <option value="en-peek">English（1文訳チラ見可）</option>
+        <option value="en">English（本番・訳なし）</option>
+        <option value="ja">日本語</option>
+      </select>
+    </label>
+    <button type="button" id="unlockBtn">すぐ書く: OFF</button>
     <button type="button" id="themeBtn">明るい画面</button>
   </header>
   <main id="app"></main>
   <script src="./js/kotlite.js"></script>
+  <script src="./js/exam-statements-en.js"></script>
   <script src="./js/reading-lab-extra.js"></script>
   <script src="./js/reading-lab-answers.js"></script>
+  <script src="./js/code-imagine-data.js"></script>
   <script src="./js/reading-lab.js"></script>
   <script src="./js/pull-refresh.js"></script>
 </body>
