@@ -13,6 +13,14 @@
   var patternIndex = 0;
   var patternLocked = false;
   var PATTERN_STORE = "timed-rehearsal-pattern-v1";
+  var LANG_STORE = "timed-rehearsal-lang-v1";
+  var statementLang = rehearsal ? "en" : "ja";
+  if (rehearsal) {
+    try {
+      var savedLang = sessionStorage.getItem(LANG_STORE);
+      if (savedLang === "ja" || savedLang === "en") statementLang = savedLang;
+    } catch (error) { /* English stays the default. */ }
+  }
 
   function taskListFor(index) {
     var pattern = examPatterns[index];
@@ -126,6 +134,21 @@
   }
   if (!readingDraft.codes || typeof readingDraft.codes !== "object") readingDraft.codes = {};
   if (!readingDraft.runs || typeof readingDraft.runs !== "object") readingDraft.runs = {};
+  if (!readingDraft.testFiles || typeof readingDraft.testFiles !== "object") readingDraft.testFiles = {};
+  var fileListEl = document.getElementById("fileList");
+  var addTestFileBtn = document.getElementById("addTestFileBtn");
+  var editorTabsEl = document.getElementById("editorTabs");
+  var tabAddTestBtn = document.getElementById("tabAddTest");
+  var tabCloseActiveBtn = document.getElementById("tabCloseActive");
+  var tabMetaEl = document.getElementById("tabMeta");
+  var solPanelEl = document.getElementById("solPanel");
+  var testPanelEl = document.getElementById("testPanel");
+  var testSigHintEl = document.getElementById("testSigHint");
+  var testInputBox = document.getElementById("testInputBox");
+  var addCaseLineBtn = document.getElementById("addCaseLineBtn");
+  var resetTestFileBtn = document.getElementById("resetTestFileBtn");
+  var runCustomBtn = document.getElementById("runCustomBtn");
+  var testBannerEl = document.getElementById("testFile");
   var keyHint = document.getElementById("keyHint");
   var keyName = document.getElementById("keyName");
   var keyNote = document.getElementById("keyNote");
@@ -169,8 +192,51 @@
     return tasks[0];
   }
 
+  function japanesePack(task) {
+    return (task && task.text && task.text.ja) || { sentences: (task && task.sentences) || [], example: (task && task.example) || "", assumptions: (task && task.assumptions) || [] };
+  }
+
+  function englishPack(task) {
+    if (!task) return null;
+    var builtIn = task.text && task.text.en;
+    if (builtIn && builtIn.sentences && builtIn.sentences.length) return builtIn;
+    var extra = root.EXAM_STATEMENTS_EN && root.EXAM_STATEMENTS_EN[task.id];
+    if (extra && extra.sentences && extra.sentences.length) return extra;
+    return null;
+  }
+
   function packOf(task) {
-    return (task.text && task.text.ja) || { sentences: task.sentences || [], example: task.example || "", assumptions: task.assumptions || [] };
+    var ja = japanesePack(task);
+    if (statementLang !== "en") return ja;
+    return englishPack(task) || ja;
+  }
+
+  function statementTitle(task) {
+    if (!task) return "";
+    if (statementLang === "en") {
+      var extra = root.EXAM_STATEMENTS_EN && root.EXAM_STATEMENTS_EN[task.id];
+      if (extra && extra.title) return extra.title;
+    }
+    return task.title;
+  }
+
+  function statementChrome() {
+    if (statementLang === "en") {
+      return {
+        limit: function (minutes) { return "Time limit: " + minutes + " min"; },
+        fn: "Function",
+        example: "Example",
+        assume: "Assumptions",
+        skipped: " (not runnable)"
+      };
+    }
+    return {
+      limit: function (minutes) { return "制限時間 " + minutes + " 分"; },
+      fn: "関数",
+      example: "例",
+      assume: "前提",
+      skipped: "（実行対象外）"
+    };
   }
 
   function assumptionText(item) {
@@ -188,7 +254,7 @@
       tasks.forEach(function (task, index) {
         var option = document.createElement("option");
         option.value = task.id;
-        option.textContent = "Task " + (index + 1) + "  " + task.title + (runnable(task) ? "" : "（実行対象外）");
+        option.textContent = "Task " + (index + 1) + "  " + statementTitle(task) + (runnable(task) ? "" : statementChrome().skipped);
         pick.appendChild(option);
       });
       return;
@@ -215,34 +281,55 @@
     });
   }
 
+  function updateLangButtons() {
+    var slot = document.getElementById("langSlot");
+    var sel = document.getElementById("statementLangPick");
+    if (!sel) return;
+    if (slot) slot.hidden = !rehearsal;
+    sel.value = statementLang === "ja" ? "ja" : "en";
+    sel.disabled = !!(pick && pick.disabled);
+  }
+
+  function setStatementLang(lang) {
+    if (lang !== "en" && lang !== "ja") return;
+    if (pick && pick.disabled) return;
+    if (statementLang === lang) {
+      updateLangButtons();
+      return;
+    }
+    statementLang = lang;
+    try { sessionStorage.setItem(LANG_STORE, lang); } catch (error) { /* The statement still switches. */ }
+    var currentId = pick ? pick.value : "";
+    fillPicker();
+    if (pick && currentId) pick.value = currentId;
+    updateLangButtons();
+    var task = taskById(currentId);
+    if (task) renderStatement(task);
+  }
+
   function paintPatterns() {
     var bar = document.getElementById("patternBar");
-    var picks = document.getElementById("patternPicks");
-    var note = document.getElementById("patternNote");
-    if (!bar || !picks) return;
+    var sel = document.getElementById("patternPick");
+    if (!bar || !sel) return;
     if (!rehearsal || !examPatterns.length) {
       bar.hidden = true;
+      updateLangButtons();
       return;
     }
     bar.hidden = false;
-    picks.innerHTML = "";
-    examPatterns.forEach(function (pattern, index) {
-      var button = document.createElement("button");
-      button.type = "button";
-      button.textContent = pattern.label;
-      button.title = pattern.name || pattern.label;
-      button.setAttribute("aria-pressed", index === patternIndex ? "true" : "false");
-      button.disabled = pick.disabled || (patternLocked && index !== patternIndex);
-      button.addEventListener("click", function () { choosePattern(index); });
-      picks.appendChild(button);
-    });
-    if (note) {
-      var current = examPatterns[patternIndex];
-      var name = current && current.name ? current.name + "。" : "";
-      note.textContent = patternLocked
-        ? name + "試験中です。パターンはリセットするまで固定です。"
-        : name + "5問・制限時間200分。開始するとパターンは固定されます。";
+    if (sel.options.length !== examPatterns.length) {
+      sel.innerHTML = "";
+      examPatterns.forEach(function (pattern, index) {
+        var option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = pattern.label + "　" + (pattern.name || "");
+        option.title = pattern.name || pattern.label;
+        sel.appendChild(option);
+      });
     }
+    sel.value = String(patternIndex);
+    sel.disabled = !!(patternLocked || (pick && pick.disabled));
+    updateLangButtons();
   }
 
   function lockPattern(locked) {
@@ -251,8 +338,10 @@
   }
 
   function choosePattern(index) {
-    if (!rehearsal || patternLocked || pick.disabled) return;
-    if (index === patternIndex || !examPatterns[index]) return;
+    if (!rehearsal || patternLocked || pick.disabled || index === patternIndex || !examPatterns[index]) {
+      paintPatterns();
+      return;
+    }
     patternIndex = index;
     try { sessionStorage.setItem(PATTERN_STORE, examPatterns[index].id); } catch (error) { /* The paper still changes for this view. */ }
     tasks = taskListFor(index);
@@ -434,19 +523,20 @@
     toggle.addEventListener("click", onStatementToggle);
     statement.appendChild(toggle);
     statement.appendChild(el("p", "muted", "Task"));
-    statement.appendChild(el("h1", null, task.title));
-    statement.appendChild(el("p", "muted", "制限時間 " + task.minutes + " 分"));
+    var chrome = statementChrome();
+    statement.appendChild(el("h1", null, statementTitle(task)));
+    statement.appendChild(el("p", "muted", chrome.limit(task.minutes)));
     var body = el("div", "stmt-body");
     body.id = "stmtBody";
     (pack.sentences || []).forEach(function (sentence) {
       body.appendChild(el("p", "stmt-line", sentence.text));
     });
-    body.appendChild(el("h2", null, "関数"));
+    body.appendChild(el("h2", null, chrome.fn));
     body.appendChild(el("pre", null, task.signature || ""));
-    body.appendChild(el("h2", null, "例"));
+    body.appendChild(el("h2", null, chrome.example));
     body.appendChild(el("pre", null, pack.example || ""));
     if ((pack.assumptions || []).length) {
-      body.appendChild(el("h2", null, "前提"));
+      body.appendChild(el("h2", null, chrome.assume));
       var list = document.createElement("ul");
       pack.assumptions.forEach(function (item) {
         list.appendChild(el("li", "stmt-line", assumptionText(item)));
@@ -506,6 +596,13 @@
     submitAnswers.disabled = busy;
     submitAnswersBottom.disabled = busy;
     codeBox.readOnly = busy;
+    if (testInputBox) testInputBox.readOnly = busy;
+    if (addTestFileBtn) addTestFileBtn.disabled = busy;
+    if (tabAddTestBtn) tabAddTestBtn.disabled = busy;
+    if (tabCloseActiveBtn) tabCloseActiveBtn.disabled = busy;
+    if (addCaseLineBtn) addCaseLineBtn.disabled = busy;
+    if (resetTestFileBtn) resetTestFileBtn.disabled = busy;
+    if (runCustomBtn) runCustomBtn.disabled = busy;
     document.getElementById("runLook").disabled = busy;
     if (rehearsal) paintPatterns();
   }
@@ -641,7 +738,659 @@
     if (run) run.classList.toggle("is-hot", !!on);
   }
 
+  function parseSignatureInfo(task) {
+    var sig = ((task && task.signature) || "").trim();
+    if (!sig || sig.indexOf("fun ") !== 0) {
+      return { isClass: true, raw: sig, params: [], returnType: "" };
+    }
+    var open = sig.indexOf("(");
+    if (open < 0) return { isClass: true, raw: sig, params: [], returnType: "" };
+    var depth = 0;
+    var close = -1;
+    var i;
+    for (i = open; i < sig.length; i += 1) {
+      if (sig.charAt(i) === "(") depth += 1;
+      else if (sig.charAt(i) === ")") {
+        depth -= 1;
+        if (depth === 0) { close = i; break; }
+      }
+    }
+    if (close < 0) return { isClass: true, raw: sig, params: [], returnType: "" };
+    var inside = sig.slice(open + 1, close).trim();
+    var after = sig.slice(close + 1).trim();
+    var returnType = after.charAt(0) === ":" ? after.slice(1).trim() : "Unit";
+    var params = [];
+    if (inside) {
+      var parts = [];
+      var start = 0;
+      var angle = 0;
+      var paren = 0;
+      for (i = 0; i < inside.length; i += 1) {
+        var ch = inside.charAt(i);
+        if (ch === "<") angle += 1;
+        else if (ch === ">") angle = Math.max(0, angle - 1);
+        else if (ch === "(") paren += 1;
+        else if (ch === ")") paren = Math.max(0, paren - 1);
+        else if (ch === "," && angle === 0 && paren === 0) {
+          parts.push(inside.slice(start, i));
+          start = i + 1;
+        }
+      }
+      parts.push(inside.slice(start));
+      parts.forEach(function (part) {
+        var piece = part.trim();
+        if (!piece) return;
+        var colon = piece.indexOf(":");
+        if (colon < 0) params.push({ name: piece, type: "Int" });
+        else {
+          params.push({
+            name: piece.slice(0, colon).trim(),
+            type: piece.slice(colon + 1).trim()
+          });
+        }
+      });
+    }
+    return { isClass: false, raw: sig, params: params, returnType: returnType };
+  }
+
+  function rawValueFromSpec(spec) {
+    if (spec == null || typeof spec !== "object" || Array.isArray(spec)) return spec;
+    var keys = ["ia", "la", "sa", "grid", "n", "L", "s", "b"];
+    var i;
+    for (i = 0; i < keys.length; i += 1) {
+      if (Object.prototype.hasOwnProperty.call(spec, keys[i])) return spec[keys[i]];
+    }
+    var first = Object.keys(spec)[0];
+    return first ? spec[first] : null;
+  }
+
+  function formatLiteralValue(val) {
+    if (typeof val === "string") return JSON.stringify(val);
+    if (typeof val === "boolean" || typeof val === "number") return String(val);
+    if (Array.isArray(val)) return "[" + val.map(formatLiteralValue).join(", ") + "]";
+    return JSON.stringify(val);
+  }
+
+  function formatArgsAsLine(args) {
+    return (args || []).map(function (spec) {
+      return formatLiteralValue(rawValueFromSpec(spec));
+    }).join(", ");
+  }
+
+  function wrapRawForType(rawVal, typeName) {
+    var t = (typeName || "").replace(/\s+/g, "");
+    if (t === "IntArray") return { ia: Array.isArray(rawVal) ? rawVal.map(function (x) { return Math.trunc(Number(x)); }) : [] };
+    if (t === "LongArray") return { la: Array.isArray(rawVal) ? rawVal.map(function (x) { return Math.trunc(Number(x)); }) : [] };
+    if (t === "Array<IntArray>") {
+      return {
+        grid: Array.isArray(rawVal) ? rawVal.map(function (row) {
+          return Array.isArray(row) ? row.map(function (x) { return Math.trunc(Number(x)); }) : [];
+        }) : []
+      };
+    }
+    if (t === "Array<String>" || t === "List<String>") {
+      return { sa: Array.isArray(rawVal) ? rawVal.map(String) : [] };
+    }
+    if (t === "Long") return { L: Math.trunc(Number(rawVal)) };
+    if (t === "Int") return { n: Math.trunc(Number(rawVal)) };
+    if (t === "String") return { s: String(rawVal) };
+    if (t === "Boolean") return { b: !!rawVal };
+    if (Array.isArray(rawVal)) return { ia: rawVal.map(function (x) { return Math.trunc(Number(x)); }) };
+    if (typeof rawVal === "string") return { s: rawVal };
+    if (typeof rawVal === "boolean") return { b: rawVal };
+    return { n: Math.trunc(Number(rawVal) || 0) };
+  }
+
+  function generateVariantArgs(task, seed) {
+    var info = parseSignatureInfo(task);
+    var params = info.params;
+    if (!params.length) return [];
+    var step = Math.max(1, seed || 1);
+    var sampleTests = (task && task.tests) || [];
+    if (task && task.id === "unpaired") {
+      var oddVal = 3 + step * 2;
+      var pairA = 2 + step;
+      var pairB = 10 + step;
+      return [{ ia: [pairA, oddVal, pairA, pairB, pairB] }];
+    }
+    if (sampleTests.length) {
+      var baseTest = sampleTests[(step - 1) % sampleTests.length];
+      var baseRaws = (baseTest.args || []).map(rawValueFromSpec);
+      if (baseRaws.length === params.length) {
+        var hasGraphN = params.length === 3 && params[0].name === "N" && params[0].type === "Int" && params[1].type === "IntArray" && params[2].type === "IntArray";
+        if (hasGraphN) {
+          var nNodes = Math.max(3, 3 + (step % 4));
+          var uArr = [];
+          var vArr = [];
+          var g;
+          var oneBased = Array.isArray(baseRaws[1]) && baseRaws[1].concat(baseRaws[2] || []).every(function (v) { return v >= 1; }) &&
+            baseRaws[1].concat(baseRaws[2] || []).some(function (v) { return v === baseRaws[0]; });
+          for (g = 0; g < nNodes - 1; g += 1) {
+            uArr.push(oneBased ? g + 1 : g);
+            vArr.push(oneBased ? g + 2 : g + 1);
+          }
+          return [{ n: nNodes }, { ia: uArr }, { ia: vArr }];
+        }
+        if (params.length === 3 && params[0].type === "String" && params[1].name === "P" && params[2].name === "Q") {
+          var dna = step % 2 === 1 ? "ACGTACGT" : "GTTACGA";
+          return [{ s: dna }, { ia: [0, 1, 2] }, { ia: [dna.length - 1, 3, 5] }];
+        }
+        return params.map(function (param, idx) {
+          var orig = baseRaws[idx];
+          var pName = param.name;
+          var pType = param.type;
+          if (pType === "String") {
+            var sOrig = String(orig != null ? orig : "");
+            if (/^\d+\.\d+\.\d+$/.test(sOrig)) {
+              return { s: "14." + (2 + (step % 4)) + "." + ((idx + step) * 2) };
+            }
+            if (sOrig.indexOf("://") !== -1) {
+              return { s: "app://items/view?id=" + (10 + step) + "&utm_source=test&sort=asc&tag=v" + step + "#section" };
+            }
+            if (/\d\d:\d\d:\d\d,/.test(sOrig)) {
+              return { s: "00:01:" + String(10 + (step % 40)).padStart(2, "0") + ",400-234-090\n00:05:1" + (step % 9) + ",701-080-080" };
+            }
+            if (/\b(DUP|POP)\b|[0-9]+ [0-9]+ [+-]/.test(sOrig)) {
+              return { s: (3 + step) + " " + (5 + step) + " + DUP 2 -" };
+            }
+            if (sOrig.indexOf(" ") !== -1) {
+              return { s: "Kotlin test case number " + step + " for check" };
+            }
+            return { s: sOrig ? sOrig + String.fromCharCode(97 + (step % 5)) : "sample" + step };
+          }
+          if (pType === "IntArray" || pType === "LongArray") {
+            var arr = Array.isArray(orig) ? orig.slice() : [1, 2, 3];
+            if (!arr.length) arr = [1, 2, 3];
+            var allZeroOne = arr.length > 1 && arr.every(function (v) { return v === 0 || v === 1; });
+            var mutated = arr.map(function (v, k) {
+              if (allZeroOne) return (v + ((k + step) % 2)) % 2;
+              if (/end|Bottom/i.test(pName) && idx > 0 && Array.isArray(baseRaws[idx - 1])) {
+                var startVal = Number(baseRaws[idx - 1][k] || 0) + step;
+                return Math.max(startVal + 2 + k, Number(v) + step * 2);
+              }
+              return Number(v) + ((k % 2 === 0) ? step : 0);
+            });
+            return wrapRawForType(mutated, pType);
+          }
+          if (pType === "Array<IntArray>") {
+            var grid = Array.isArray(orig) && orig.length ? orig : [[1, 2], [3, 4]];
+            return {
+              grid: grid.map(function (row, r) {
+                return row.map(function (cell, c) { return Number(cell) + ((r + c + step) % 2); });
+              })
+            };
+          }
+          if (pType === "Boolean") return { b: step % 2 === 0 };
+          if (pType === "Long") {
+            var baseL = Number(orig || 10);
+            if (/bottom/i.test(pName) && idx > 0) return { L: Number(baseRaws[idx - 1] || 0) + step * 20 + 100 };
+            return { L: baseL + step * 10 };
+          }
+          var baseN = Number(orig != null ? orig : 3);
+          return { n: Math.max(1, baseN + (step % 4)) };
+        });
+      }
+    }
+    return params.map(function (param, idx) {
+      var t = param.type;
+      if (t === "IntArray") return { ia: [1 + step, 2 + idx, 3 + step] };
+      if (t === "LongArray") return { la: [10 * step, 20 * step, 30 * step] };
+      if (t === "Array<IntArray>") return { grid: [[1, 2 + step], [3, 4 + step]] };
+      if (t === "Array<String>" || t === "List<String>") return { sa: ["a" + step, "b" + step] };
+      if (t === "String") return { s: "sample_" + step };
+      if (t === "Boolean") return { b: step % 2 === 1 };
+      if (t === "Long") return { L: 100 * step };
+      return { n: 2 + step + idx };
+    });
+  }
+
+  function buildInitialTestFileContent(task, fileIndex) {
+    var info = parseSignatureInfo(task);
+    if (info.isClass || !task || !task.runnable) {
+      return [
+        "// " + ((task && task.signature) || "class 形式の問題"),
+        "// この問題は class 形式のため、ブラウザ内実行機ではなく外部IDEで単体テストを確認してください。",
+        "// 確認したい境界ケースメモをここに自由に書き残せます。"
+      ].join("\n") + "\n";
+    }
+    var paramDesc = info.params.map(function (p) { return p.name + ": " + p.type; }).join(", ");
+    var header = [
+      "// 関数: " + info.raw,
+      "// 引数: " + (paramDesc || "なし") + " （1行 = 1テストケース / 入力 => 期待値 も指定可）"
+    ];
+    var lines = [];
+    if (fileIndex === 0 && task.tests && task.tests.length) {
+      task.tests.forEach(function (tc) {
+        lines.push(formatArgsAsLine(tc.args));
+      });
+      if (lines.length < 2) {
+        lines.push(formatArgsAsLine(generateVariantArgs(task, 1)));
+      }
+    } else {
+      var baseSeed = Math.max(1, fileIndex * 2);
+      lines.push(formatArgsAsLine(generateVariantArgs(task, baseSeed)));
+      lines.push(formatArgsAsLine(generateVariantArgs(task, baseSeed + 1)));
+    }
+    return header.concat(lines).join("\n") + "\n";
+  }
+
+  function ensureTaskTestState(task) {
+    if (!task) return null;
+    var state = readingDraft.testFiles[task.id];
+    if (!state || !Array.isArray(state.files) || !state.files.length) {
+      state = {
+        files: [
+          {
+            id: "test-1",
+            name: "test-input.txt",
+            content: buildInitialTestFileContent(task, 0)
+          }
+        ],
+        openTabs: ["sol"],
+        activeTab: "sol",
+        nextSeq: 2,
+        lineSeed: 1
+      };
+      readingDraft.testFiles[task.id] = state;
+    } else {
+      if (!Array.isArray(state.openTabs) || !state.openTabs.length) state.openTabs = ["sol"];
+      if (state.openTabs.indexOf("sol") === -1) state.openTabs.unshift("sol");
+      if (!state.activeTab) state.activeTab = "sol";
+      if (!state.nextSeq || state.nextSeq < 2) state.nextSeq = state.files.length + 1;
+      if (!state.lineSeed) state.lineSeed = 1;
+    }
+    return state;
+  }
+
+  function findTestFile(state, fileId) {
+    if (!state || !state.files) return null;
+    var i;
+    for (i = 0; i < state.files.length; i += 1) {
+      if (state.files[i].id === fileId) return state.files[i];
+    }
+    return null;
+  }
+
+  function splitTopLevel(text, delimiter) {
+    var out = [];
+    var start = 0;
+    var sq = 0;
+    var par = 0;
+    var cur = 0;
+    var inStr = "";
+    var i;
+    for (i = 0; i < text.length; i += 1) {
+      var ch = text.charAt(i);
+      if (inStr) {
+        if (ch === "\\") { i += 1; continue; }
+        if (ch === inStr) inStr = "";
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inStr = ch; continue; }
+      if (ch === "[") sq += 1;
+      else if (ch === "]") sq = Math.max(0, sq - 1);
+      else if (ch === "(") par += 1;
+      else if (ch === ")") par = Math.max(0, par - 1);
+      else if (ch === "{") cur += 1;
+      else if (ch === "}") cur = Math.max(0, cur - 1);
+      else if (sq === 0 && par === 0 && cur === 0 && text.slice(i, i + delimiter.length) === delimiter) {
+        out.push(text.slice(start, i));
+        start = i + delimiter.length;
+        i += delimiter.length - 1;
+      }
+    }
+    out.push(text.slice(start));
+    return out;
+  }
+
+  function stripOuterParens(text) {
+    var s = text.trim();
+    if (s.charAt(0) !== "(" || s.charAt(s.length - 1) !== ")") return s;
+    var depth = 0;
+    var inStr = "";
+    var i;
+    for (i = 0; i < s.length; i += 1) {
+      var ch = s.charAt(i);
+      if (inStr) {
+        if (ch === "\\") { i += 1; continue; }
+        if (ch === inStr) inStr = "";
+        continue;
+      }
+      if (ch === '"' || ch === "'") { inStr = ch; continue; }
+      if (ch === "(") depth += 1;
+      else if (ch === ")") {
+        depth -= 1;
+        if (depth === 0 && i < s.length - 1) return s;
+      }
+    }
+    return depth === 0 ? s.slice(1, -1).trim() : s;
+  }
+
+  function normalizeKotlinLiteral(tokenText, expectedType) {
+    var s = tokenText.trim();
+    s = s.replace(/^(intArrayOf|longArrayOf|arrayOf|listOf)\s*\(([\s\S]*)\)$/, "[$2]");
+    var t = (expectedType || "").replace(/\s+/g, "");
+    if (t === "String") {
+      if ((s.charAt(0) === '"' && s.charAt(s.length - 1) === '"')) {
+        return JSON.parse(s);
+      }
+      if (s.charAt(0) === "'" && s.charAt(s.length - 1) === "'") {
+        return s.slice(1, -1).replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\'/g, "'");
+      }
+      return s;
+    }
+    if (t === "Boolean") {
+      if (s === "true") return true;
+      if (s === "false") return false;
+      throw new Error("真偽値（true または false）を指定してください: " + s);
+    }
+    if (t === "Int" || t === "Long") {
+      var cleanedNum = s.replace(/_/g, "").replace(/[Ll]$/, "");
+      if (!/^[+-]?\d+$/.test(cleanedNum)) {
+        throw new Error("整数を指定してください: " + s);
+      }
+      return Number(cleanedNum);
+    }
+    if (t === "IntArray" || t === "LongArray") {
+      var arrText = s;
+      if (arrText.charAt(0) !== "[") arrText = "[" + arrText + "]";
+      var cleanedArr = arrText.replace(/(\d)_(\d)/g, "$1$2").replace(/(-?\d+)[Ll]\b/g, "$1");
+      var parsed = JSON.parse(cleanedArr);
+      if (!Array.isArray(parsed)) throw new Error("配列 [ ... ] を指定してください: " + s);
+      return parsed.map(function (v) {
+        if (typeof v !== "number" || !isFinite(v)) throw new Error("配列の要素は数値にしてください: " + s);
+        return Math.trunc(v);
+      });
+    }
+    if (t === "Array<IntArray>") {
+      var gridParsed = JSON.parse(s.replace(/(\d)_(\d)/g, "$1$2").replace(/(-?\d+)[Ll]\b/g, "$1"));
+      if (!Array.isArray(gridParsed) || !gridParsed.every(Array.isArray)) {
+        throw new Error("2次元配列 [[...], [...]] を指定してください: " + s);
+      }
+      return gridParsed;
+    }
+    if (t === "Array<String>" || t === "List<String>") {
+      var strArr = JSON.parse(s);
+      if (!Array.isArray(strArr)) throw new Error("文字列配列 [\"...\"] を指定してください: " + s);
+      return strArr.map(String);
+    }
+    var fallbackClean = s.replace(/(\d)_(\d)/g, "$1$2").replace(/(-?\d+)[Ll]\b/g, "$1");
+    return JSON.parse(fallbackClean);
+  }
+
+  function parseTestCasesFromFile(task, fileObj) {
+    var info = parseSignatureInfo(task);
+    var params = info.params;
+    var lines = String((fileObj && fileObj.content) || "").split(/\r?\n/);
+    var cases = [];
+    var errors = [];
+    var lineIdx;
+    for (lineIdx = 0; lineIdx < lines.length; lineIdx += 1) {
+      var rawLine = lines[lineIdx].trim();
+      if (!rawLine || rawLine.indexOf("//") === 0 || rawLine.indexOf("#") === 0) continue;
+      var arrowParts = splitTopLevel(rawLine, "=>");
+      var inputPart = arrowParts[0].trim();
+      var expectPart = arrowParts.length > 1 ? arrowParts.slice(1).join("=>").trim() : "";
+      var unwrapped = stripOuterParens(inputPart);
+      try {
+        var argSpecs = [];
+        if (params.length === 0) {
+          if (unwrapped && unwrapped !== "()") {
+            throw new Error("この関数は引数を取りません");
+          }
+        } else if (params.length === 1) {
+          var singleText = unwrapped;
+          var eqMatch1 = singleText.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([\s\S]+)$/);
+          if (eqMatch1 && eqMatch1[1] === params[0].name) singleText = eqMatch1[2].trim();
+          var val1 = normalizeKotlinLiteral(singleText, params[0].type);
+          argSpecs.push(wrapRawForType(val1, params[0].type));
+        } else {
+          var tokens = splitTopLevel(unwrapped, ",");
+          if (tokens.length !== params.length) {
+            var expectedNames = params.map(function (p) { return p.name + ": " + p.type; }).join(", ");
+            throw new Error("引数は " + params.length + " 個（" + expectedNames + "）必要ですが、" + tokens.length + " 個でした");
+          }
+          var pIdx;
+          for (pIdx = 0; pIdx < params.length; pIdx += 1) {
+            var tok = tokens[pIdx].trim();
+            var eqMatch = tok.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([\s\S]+)$/);
+            if (eqMatch && eqMatch[1] === params[pIdx].name) tok = eqMatch[2].trim();
+            var parsedVal = normalizeKotlinLiteral(tok, params[pIdx].type);
+            argSpecs.push(wrapRawForType(parsedVal, params[pIdx].type));
+          }
+        }
+        var hasExplicitExpect = expectPart !== "";
+        var explicitExpect = hasExplicitExpect ? normalizeKotlinLiteral(expectPart, info.returnType) : null;
+        cases.push({
+          name: fileObj.name + " #" + (cases.length + 1) + "（" + (lineIdx + 1) + "行目）",
+          fileName: fileObj.name,
+          lineNo: lineIdx + 1,
+          args: argSpecs,
+          hasExplicitExpect: hasExplicitExpect,
+          expect: explicitExpect
+        });
+      } catch (err) {
+        errors.push(fileObj.name + " " + (lineIdx + 1) + "行目: " + (err && err.message ? err.message : "入力形式を確認してください"));
+      }
+    }
+    return { cases: cases, errors: errors };
+  }
+
+  function updateTestBannerForEditor(task) {
+    if (!testBannerEl || !task) return;
+    var state = ensureTaskTestState(task);
+    if (!state || state.activeTab === "sol") return;
+    var activeFile = findTestFile(state, state.activeTab);
+    if (!activeFile) return;
+    var info = parseSignatureInfo(task);
+    if (info.isClass || !task.runnable) {
+      testBannerEl.textContent = activeFile.name + "（class 問題は外部IDEでテストを実行します）";
+      return;
+    }
+    var parsed = parseTestCasesFromFile(task, activeFile);
+    if (parsed.errors.length) {
+      testBannerEl.textContent = "⚠ " + parsed.errors[0];
+    } else {
+      testBannerEl.textContent = activeFile.name + " — 有効なテストケース " + parsed.cases.length + " 件（下の「この入力で動作確認」または「Run code」で実行できます）";
+    }
+  }
+
+  function renderWorkspaceTabs(task) {
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    var activeId = state.activeTab;
+    if (activeId !== "sol" && !findTestFile(state, activeId)) {
+      activeId = "sol";
+      state.activeTab = "sol";
+    }
+    if (fileListEl) {
+      fileListEl.textContent = "";
+      var solRow = el("div", "file-row" + (activeId === "sol" ? " is-on" : ""));
+      var solBtn = el("button", "file" + (activeId === "sol" ? " is-on" : ""), "solution.kt");
+      solBtn.type = "button";
+      solBtn.id = "fileSol";
+      solBtn.addEventListener("click", function () {
+        if (pick.disabled) return;
+        activateWorkspaceTab("sol");
+      });
+      solRow.appendChild(solBtn);
+      fileListEl.appendChild(solRow);
+
+      state.files.forEach(function (f, idx) {
+        var isOn = activeId === f.id;
+        var row = el("div", "file-row" + (isOn ? " is-on" : ""));
+        var btn = el("button", "file" + (isOn ? " is-on" : ""), f.name);
+        btn.type = "button";
+        if (idx === 0) btn.id = "fileTest";
+        btn.addEventListener("click", function () {
+          if (pick.disabled) return;
+          openAndActivateTestFile(f.id);
+        });
+        row.appendChild(btn);
+        if (idx > 0) {
+          var delBtn = el("button", "file-del", "×");
+          delBtn.type = "button";
+          delBtn.title = f.name + " を削除";
+          delBtn.setAttribute("aria-label", f.name + " を削除");
+          delBtn.disabled = pick.disabled;
+          delBtn.addEventListener("click", function (ev) {
+            ev.stopPropagation();
+            if (pick.disabled) return;
+            deleteTestFile(f.id);
+          });
+          row.appendChild(delBtn);
+        }
+        fileListEl.appendChild(row);
+      });
+    }
+
+    if (editorTabsEl) {
+      editorTabsEl.textContent = "";
+      state.openTabs.forEach(function (tabId) {
+        var label = "solution.kt";
+        if (tabId !== "sol") {
+          var fObj = findTestFile(state, tabId);
+          if (!fObj) return;
+          label = fObj.name;
+        }
+        var isSelected = tabId === activeId;
+        var tabBtn = el("button", "tab", label);
+        tabBtn.type = "button";
+        tabBtn.setAttribute("role", "tab");
+        tabBtn.id = "tab-" + tabId;
+        tabBtn.setAttribute("aria-selected", isSelected ? "true" : "false");
+        tabBtn.tabIndex = isSelected ? 0 : -1;
+        tabBtn.addEventListener("click", function () {
+          if (pick.disabled) return;
+          activateWorkspaceTab(tabId);
+        });
+        editorTabsEl.appendChild(tabBtn);
+        if (isSelected && tabBtn.scrollIntoView) {
+          window.requestAnimationFrame(function () {
+            try { tabBtn.scrollIntoView({ block: "nearest", inline: "nearest" }); } catch (e) { /* ignore */ }
+          });
+        }
+      });
+    }
+
+    var onSol = activeId === "sol";
+    if (solPanelEl) solPanelEl.hidden = !onSol;
+    if (testPanelEl) {
+      testPanelEl.hidden = onSol;
+      if (!onSol) testPanelEl.setAttribute("aria-labelledby", "tab-" + activeId);
+    }
+    if (tabCloseActiveBtn) {
+      tabCloseActiveBtn.hidden = onSol;
+      tabCloseActiveBtn.disabled = pick.disabled;
+    }
+    if (tabMetaEl) {
+      tabMetaEl.textContent = onSol ? "Language: Kotlin" : "Test Input（1行1ケース）";
+    }
+    if (!onSol) {
+      var activeFileObj = findTestFile(state, activeId);
+      var sigInfo = parseSignatureInfo(task);
+      if (testSigHintEl) {
+        testSigHintEl.textContent = sigInfo.isClass
+          ? (sigInfo.raw || "class 形式")
+          : "引数: " + (sigInfo.params.map(function (p) { return p.name + ": " + p.type; }).join(", ") || "なし") + " → 返り値: " + sigInfo.returnType;
+      }
+      if (testInputBox && activeFileObj && testInputBox.value !== activeFileObj.content) {
+        testInputBox.value = activeFileObj.content;
+      }
+      updateTestBannerForEditor(task);
+    }
+  }
+
+  function activateWorkspaceTab(tabId) {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    if (tabId !== "sol" && state.openTabs.indexOf(tabId) === -1) {
+      state.openTabs.push(tabId);
+    }
+    state.activeTab = tabId;
+    saveDraft();
+    renderWorkspaceTabs(task);
+    if (tabId === "sol") renderGutter({}, currentLineNo);
+  }
+
+  function openAndActivateTestFile(fileId) {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    var target = findTestFile(state, fileId);
+    if (!target) return;
+    if (!target.content || !target.content.trim()) {
+      target.content = buildInitialTestFileContent(task, state.files.indexOf(target));
+    }
+    if (state.openTabs.indexOf(fileId) === -1) {
+      state.openTabs.push(fileId);
+    }
+    state.activeTab = fileId;
+    saveDraft();
+    renderWorkspaceTabs(task);
+  }
+
+  function createNewTestFile() {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    var seq = state.nextSeq || (state.files.length + 1);
+    while (state.files.some(function (f) { return f.name === "test-input-" + seq + ".txt"; })) {
+      seq += 1;
+    }
+    state.nextSeq = seq + 1;
+    var newFile = {
+      id: "test-" + seq,
+      name: "test-input-" + seq + ".txt",
+      content: buildInitialTestFileContent(task, state.files.length)
+    };
+    state.files.push(newFile);
+    state.openTabs.push(newFile.id);
+    state.activeTab = newFile.id;
+    saveDraft();
+    renderWorkspaceTabs(task);
+    if (testInputBox) testInputBox.focus();
+  }
+
+  function closeActiveTestTab() {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    var curId = state.activeTab;
+    if (curId === "sol") return;
+    var at = state.openTabs.indexOf(curId);
+    if (at !== -1) state.openTabs.splice(at, 1);
+    state.activeTab = state.openTabs[Math.max(0, at - 1)] || "sol";
+    saveDraft();
+    renderWorkspaceTabs(task);
+  }
+
+  function deleteTestFile(fileId) {
+    var task = taskById(pick.value);
+    if (!task) return;
+    var state = ensureTaskTestState(task);
+    var idx = -1;
+    var i;
+    for (i = 0; i < state.files.length; i += 1) {
+      if (state.files[i].id === fileId) { idx = i; break; }
+    }
+    if (idx <= 0) return;
+    state.files.splice(idx, 1);
+    var tabIdx = state.openTabs.indexOf(fileId);
+    if (tabIdx !== -1) state.openTabs.splice(tabIdx, 1);
+    if (state.activeTab === fileId) state.activeTab = state.openTabs[state.openTabs.length - 1] || "sol";
+    saveDraft();
+    renderWorkspaceTabs(task);
+  }
+
   function showFile(which) {
+    var task = taskById(pick.value);
+    var state = task ? ensureTaskTestState(task) : null;
+    if (which === "sol" && state && state.activeTab !== "sol" && pick.disabled) {
+      state.activeTab = "sol";
+      renderWorkspaceTabs(task);
+    }
     var sol = document.getElementById("fileSol");
     var test = document.getElementById("fileTest");
     if (sol) sol.classList.toggle("is-on", which === "sol");
@@ -1073,17 +1822,55 @@
     }
   }
 
+  function inspectExecutedRow(row, index) {
+    var items = results.querySelectorAll(".case-item");
+    var i;
+    for (i = 0; i < items.length; i += 1) items[i].classList.toggle("is-current", i === index);
+    caseNow.textContent = "";
+    caseNow.appendChild(el("p", null, "テスト " + row.name));
+    if (row.inputSummary != null) {
+      caseNow.appendChild(el("p", null, "入力 " + row.inputSummary));
+    }
+    caseNow.appendChild(el("p", null, "返り値 " + shown(row.actual)));
+    if (row.hasExpect !== false) {
+      caseNow.appendChild(el("p", null, "期待する返り値 " + shown(row.expected)));
+    }
+    var outLines = row.output || [];
+    consoleOut.textContent = outLines.length ? outLines.join("\n") : "（標準出力はありません）";
+    if (testBannerEl) {
+      var banner = "[" + row.name + "] 入力: " + (row.inputSummary != null ? row.inputSummary : "なし") +
+        "\n返り値: " + shown(row.actual) +
+        (row.hasExpect !== false ? " / 期待値: " + shown(row.expected) + (row.ok ? "（一致）" : "（不一致）") : "（動作確認完了）");
+      testBannerEl.textContent = banner;
+    }
+  }
+
   function showTests(rows) {
     results.textContent = "";
     if (!rows.length) {
-      results.appendChild(el("p", null, "サンプルはありません。"));
+      results.appendChild(el("p", null, "テストケースがありません。test-input タブでケース行を追加してください。"));
       return;
     }
-    rows.forEach(function (row) {
-      var line = row.name + (row.ok ? " 合っています" : " 期待と違います");
-      results.appendChild(el("p", row.ok ? "pass" : "fail", line));
-      results.appendChild(el("p", "muted", "結果: " + shown(row.actual) + " / 期待: " + shown(row.expected)));
+    rows.forEach(function (row, index) {
+      var wrap = el("div", "case-item" + (index === 0 ? " is-current" : ""));
+      var hasExpect = row.hasExpect !== false;
+      var statusClass = hasExpect ? (row.ok ? "pass" : "fail") : "pass";
+      var line = row.name + " — " + (hasExpect ? (row.ok ? "合っています" : "期待と違います") : "実行完了");
+      var head = el("p", statusClass, line);
+      head.setAttribute("data-sample", String(index));
+      wrap.appendChild(head);
+      var detail = (row.inputSummary != null ? "入力: " + row.inputSummary + " → " : "") +
+        "結果: " + shown(row.actual) +
+        (hasExpect ? " / 期待: " + shown(row.expected) : "");
+      wrap.appendChild(el("p", "muted", detail));
+      wrap.addEventListener("click", function () {
+        inspectExecutedRow(row, index);
+      });
+      results.appendChild(wrap);
     });
+    if (rows[0] && rows[0].inputSummary != null) {
+      inspectExecutedRow(rows[0], 0);
+    }
   }
 
   function renderSummary() {
@@ -1150,6 +1937,9 @@
     highlightGen += 1;
     endSolveHighlight(0);
     renderStatement(task);
+    var st = ensureTaskTestState(task);
+    if (st) st.activeTab = "sol";
+    renderWorkspaceTabs(task);
     showShell(task);
     results.textContent = "";
     logBox.textContent = "";
@@ -1293,6 +2083,8 @@
     if (pick.disabled) return;
     var task = taskById(pick.value);
     renderStatement(task);
+    ensureTaskTestState(task);
+    renderWorkspaceTabs(task);
     showShell(task);
     results.textContent = "";
     logBox.textContent = "";
@@ -1303,6 +2095,9 @@
     caseNow.textContent = "";
     showVars([]);
     consoleOut.textContent = "（標準出力はありません）";
+    if (testBannerEl && ensureTaskTestState(task).activeTab === "sol") {
+      testBannerEl.textContent = "テスト入力は、デバッグ中にここに出ます。（左の Files から test-input.txt を開くとテスト入力を追加・編集できます）";
+    }
     renderGutter({}, 0);
   });
   solveOne.addEventListener("click", function () {
@@ -1357,37 +2152,216 @@
       status.textContent = "コードを選択しました。手動でコピーしてください。";
     });
   });
-  document.getElementById("runLook").addEventListener("click", function () {
+  function executeManualTests(onlyActiveFile) {
     var task = taskById(pick.value);
     if (!task) return;
     var source = codeBox.value;
     readingDraft.codes[task.id] = source;
     var run = { source: source, tests: [], error: "" };
     results.textContent = "";
-    if (!task.runnable || !(task.tests || []).length) {
+    if (!task.runnable) {
       run.error = "この問題は練習用実行機で実行できません。外部IDEで確認してください。";
-    } else {
-      forceStatementClosed();
-      setRunning(true);
-      try {
-        var outcome = root.Kotlite.runTests(source, task.tests);
-        if (outcome.paused || !outcome.results || outcome.results.length !== task.tests.length) {
-          run.error = "サンプル実行を完了できませんでした。";
-        } else {
-          run.tests = outcome.results.map(function (row, index) {
-            return { name: row.name, ok: !!row.ok, actual: row.actual, expected: row.expected, because: (task.tests[index] && task.tests[index].because) || "" };
-          });
-        }
-      } catch (error) {
-        run.error = (error && error.message) ? error.message : "実行できませんでした。";
-      }
-      endSolveHighlight(2400);
+      readingDraft.runs[task.id] = run;
+      saveDraft();
+      results.appendChild(el("p", "fail", "実行できません: " + run.error));
+      return;
     }
+    var state = ensureTaskTestState(task);
+    var targetFiles = state.files;
+    if (onlyActiveFile && state.activeTab !== "sol") {
+      var activeF = findTestFile(state, state.activeTab);
+      if (activeF) targetFiles = [activeF];
+    }
+    var collected = [];
+    var parseErrors = [];
+    targetFiles.forEach(function (fObj) {
+      var parsed = parseTestCasesFromFile(task, fObj);
+      if (parsed.errors.length) parseErrors = parseErrors.concat(parsed.errors);
+      collected = collected.concat(parsed.cases);
+    });
+    if (parseErrors.length) {
+      run.error = parseErrors.join(" / ");
+      readingDraft.runs[task.id] = run;
+      saveDraft();
+      parseErrors.forEach(function (msg) {
+        results.appendChild(el("p", "fail", "テスト入力エラー: " + msg));
+      });
+      if (testBannerEl) testBannerEl.textContent = "⚠ " + parseErrors[0];
+      return;
+    }
+    if (!collected.length) {
+      run.error = "有効なテスト入力行がありません。test-input タブで「＋ ケース行を追加」を押すか入力を記述してください。";
+      readingDraft.runs[task.id] = run;
+      saveDraft();
+      results.appendChild(el("p", "fail", run.error));
+      return;
+    }
+
+    var refCode = answers[task.id] && answers[task.id].code ? answers[task.id].code : "";
+    var runnableCases = collected.map(function (c) {
+      var expectVal = c.expect;
+      var hasExpect = !!c.hasExplicitExpect;
+      if (!hasExpect && refCode) {
+        try {
+          var refOut = root.Kotlite.runTests(refCode, [{ name: c.name, args: c.args, expect: null }]);
+          if (refOut && refOut.results && refOut.results.length === 1) {
+            expectVal = refOut.results[0].actual;
+            hasExpect = true;
+          }
+        } catch (refErr) {
+          hasExpect = false;
+        }
+      }
+      return {
+        name: c.name,
+        args: c.args,
+        expect: expectVal,
+        hasExpect: hasExpect,
+        inputSummary: formatArgsAsLine(c.args),
+        because: ""
+      };
+    });
+
+    forceStatementClosed();
+    setRunning(true);
+    try {
+      var outcome = root.Kotlite.runTests(source, runnableCases);
+      if (outcome.paused || !outcome.results || outcome.results.length !== runnableCases.length) {
+        run.error = "テスト実行を完了できませんでした。";
+      } else {
+        run.tests = outcome.results.map(function (row, index) {
+          var specCase = runnableCases[index];
+          return {
+            name: row.name,
+            ok: specCase.hasExpect ? !!row.ok : true,
+            hasExpect: specCase.hasExpect,
+            actual: row.actual,
+            expected: row.expected,
+            output: row.output || [],
+            inputSummary: specCase.inputSummary,
+            because: specCase.because || ""
+          };
+        });
+      }
+    } catch (error) {
+      run.error = (error && error.message) ? error.message + (error.line ? "（" + error.line + "行目）" : "") : "実行できませんでした。";
+    }
+    endSolveHighlight(2400);
     readingDraft.runs[task.id] = run;
     saveDraft();
-    if (run.error) results.appendChild(el("p", "fail", "実行できません: " + run.error));
-    else showTests(run.tests);
+    if (run.error) {
+      results.appendChild(el("p", "fail", "実行できません: " + run.error));
+      if (testBannerEl) testBannerEl.textContent = "実行エラー: " + run.error;
+    } else {
+      showTests(run.tests);
+    }
+  }
+
+  document.getElementById("runLook").addEventListener("click", function () {
+    executeManualTests(false);
   });
+  if (runCustomBtn) {
+    runCustomBtn.addEventListener("click", function () {
+      executeManualTests(true);
+    });
+  }
+  if (addTestFileBtn) {
+    addTestFileBtn.addEventListener("click", function () {
+      if (pick.disabled) return;
+      createNewTestFile();
+    });
+  }
+  if (tabAddTestBtn) {
+    tabAddTestBtn.addEventListener("click", function () {
+      if (pick.disabled) return;
+      var task = taskById(pick.value);
+      if (!task) return;
+      var state = ensureTaskTestState(task);
+      if (state.files[0] && state.openTabs.indexOf(state.files[0].id) === -1) {
+        openAndActivateTestFile(state.files[0].id);
+      } else {
+        createNewTestFile();
+      }
+    });
+  }
+  if (tabCloseActiveBtn) {
+    tabCloseActiveBtn.addEventListener("click", function () {
+      if (pick.disabled) return;
+      closeActiveTestTab();
+    });
+  }
+  if (testInputBox) {
+    testInputBox.addEventListener("input", function () {
+      var task = taskById(pick.value);
+      if (!task) return;
+      var state = ensureTaskTestState(task);
+      var activeFile = findTestFile(state, state.activeTab);
+      if (!activeFile) return;
+      activeFile.content = testInputBox.value;
+      saveDraft();
+      updateTestBannerForEditor(task);
+    });
+  }
+  if (addCaseLineBtn) {
+    addCaseLineBtn.addEventListener("click", function () {
+      if (pick.disabled) return;
+      var task = taskById(pick.value);
+      if (!task) return;
+      var state = ensureTaskTestState(task);
+      var activeFile = findTestFile(state, state.activeTab);
+      if (!activeFile) return;
+      var info = parseSignatureInfo(task);
+      if (info.isClass || !task.runnable) return;
+      var seed = state.lineSeed || 1;
+      state.lineSeed = seed + 1;
+      var newLine = formatArgsAsLine(generateVariantArgs(task, seed));
+      var cur = activeFile.content || "";
+      if (cur && cur.charAt(cur.length - 1) !== "\n") cur += "\n";
+      activeFile.content = cur + newLine + "\n";
+      if (testInputBox) {
+        testInputBox.value = activeFile.content;
+        testInputBox.scrollTop = testInputBox.scrollHeight;
+        testInputBox.focus();
+      }
+      saveDraft();
+      updateTestBannerForEditor(task);
+    });
+  }
+  if (resetTestFileBtn) {
+    resetTestFileBtn.addEventListener("click", function () {
+      if (pick.disabled) return;
+      var task = taskById(pick.value);
+      if (!task) return;
+      var state = ensureTaskTestState(task);
+      var activeFile = findTestFile(state, state.activeTab);
+      if (!activeFile) return;
+      var idx = state.files.indexOf(activeFile);
+      activeFile.content = buildInitialTestFileContent(task, Math.max(0, idx));
+      if (testInputBox) testInputBox.value = activeFile.content;
+      saveDraft();
+      updateTestBannerForEditor(task);
+    });
+  }
+  if (editorTabsEl) {
+    editorTabsEl.addEventListener("keydown", function (ev) {
+      if (pick.disabled) return;
+      var tabs = Array.prototype.slice.call(editorTabsEl.querySelectorAll('[role="tab"]'));
+      if (tabs.length < 2) return;
+      var currentIdx = tabs.indexOf(document.activeElement);
+      if (currentIdx < 0) return;
+      var nextIdx = -1;
+      if (ev.key === "ArrowRight") nextIdx = (currentIdx + 1) % tabs.length;
+      else if (ev.key === "ArrowLeft") nextIdx = (currentIdx - 1 + tabs.length) % tabs.length;
+      else if (ev.key === "Home") nextIdx = 0;
+      else if (ev.key === "End") nextIdx = tabs.length - 1;
+      if (nextIdx >= 0) {
+        ev.preventDefault();
+        tabs[nextIdx].click();
+        var updated = editorTabsEl.querySelectorAll('[role="tab"]')[nextIdx];
+        if (updated) updated.focus();
+      }
+    });
+  }
   codeBox.addEventListener("scroll", function () {
     gutter.scrollTop = codeBox.scrollTop;
     placeCurrentLine(currentLineNo);
@@ -1401,11 +2375,25 @@
     if (readingSection) readingSection.hidden = true;
     if (solveAll) solveAll.textContent = "この5問のうち実行できる問題を順に解く";
   }
+  var patternPick = document.getElementById("patternPick");
+  if (patternPick) {
+    patternPick.addEventListener("change", function () {
+      choosePattern(Number(patternPick.value));
+    });
+  }
+  var langPick = document.getElementById("statementLangPick");
+  if (langPick) {
+    langPick.addEventListener("change", function () {
+      setStatementLang(langPick.value);
+    });
+  }
   paintPatterns();
   fillPicker();
   showVars([]);
   if (tasks[0]) {
     renderStatement(tasks[0]);
+    ensureTaskTestState(tasks[0]);
+    renderWorkspaceTabs(tasks[0]);
     showShell(tasks[0]);
   } else {
     renderGutter({}, 0);

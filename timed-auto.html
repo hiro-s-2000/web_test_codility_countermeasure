@@ -76,40 +76,74 @@
       max-width: 100%;
       white-space: normal;
     }
+    .solve-actions {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 2px;
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .solve-actions button {
+      flex: 0 1 auto;
+      min-width: 0;
+      white-space: nowrap;
+    }
     .pattern-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 2px;
       align-items: center;
       width: 100%;
       min-width: 0;
     }
     .pattern-bar[hidden] { display: none !important; }
-    .pattern-label {
+    .pattern-field {
+      display: grid;
+      grid-template-columns: auto minmax(12rem, 1fr);
+      align-items: center;
+      gap: 2px;
+      flex: 1 1 18rem;
+      min-width: 0;
+      max-width: 100%;
       font-size: 12px;
       font-weight: 700;
+    }
+    .pattern-field select { width: 100%; min-width: 0; }
+    header.exam-top .lang-slot {
+      position: relative;
+      display: inline-block;
+      flex: 0 0 auto;
+      line-height: 1.25;
+    }
+    header.exam-top .lang-slot[hidden] { display: none !important; }
+    header.exam-top .lang-sizer {
+      visibility: hidden;
+      display: block;
       white-space: nowrap;
+      padding: 2px;
+      border: 1px solid transparent;
+      line-height: 1.25;
+      font: inherit;
     }
-    .pattern-picks { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
-    .pattern-picks button[aria-pressed="true"] {
-      border-color: var(--accent);
-      background: #3a3778;
-      color: #fff;
-    }
-    .pattern-note {
-      margin: 0;
-      flex: 1 1 14rem;
+    header.exam-top .lang-slot select {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
       min-width: 0;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
+      margin: 0;
+      box-sizing: border-box;
     }
     header.exam-top a.nav,
     header.exam-top button,
     header.exam-top select,
     header.exam-top .submit-look {
       min-height: 0;
-      padding: 1px 4px;
+      padding: 2px;
       border-radius: 4px;
       line-height: 1.25;
     }
@@ -127,9 +161,11 @@
       color: var(--text);
       background: var(--panel-2);
       border: 1px solid var(--line);
-      border-radius: 6px;
-      min-height: 44px;
-      padding: 8px 12px;
+      border-radius: 4px;
+      min-height: 0;
+      margin: 0;
+      padding: 2px;
+      line-height: 1.25;
     }
     a.nav { display: inline-flex; align-items: center; text-decoration: none; }
     button { cursor: pointer; }
@@ -158,7 +194,7 @@
     .task-clock, .exam-timer { display: flex; align-items: center; gap: 2px; }
     .clock-label { color: var(--muted); font-size: 13px; white-space: nowrap; }
     .exam-timer { flex-wrap: wrap; }
-    .exam-timer button { min-height: 0; padding: 2px 7px; font-size: 13px; }
+    .exam-timer button { min-height: 0; padding: 2px; font-size: 13px; }
     .exam-status { color: var(--bad); font-size: 13px; }
     #app {
       flex: 1;
@@ -208,38 +244,188 @@
     .solution-head, .tabbar, .editor-foot, .output-head {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 2px;
       align-items: center;
-      padding: 8px 12px;
+      padding: 4px 8px;
       background: #2a2a2a;
       border-bottom: 1px solid var(--line);
     }
     .solution-head { justify-content: space-between; }
     .solution-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 168px minmax(0, 1fr); }
-    .files { background: #252525; border-right: 1px solid var(--line); padding: 10px 0; }
+    .files { background: #252525; border-right: 1px solid var(--line); padding: 4px 0; }
     .files h2, .editor-col h2 { margin: 0; }
-    .files h2 { font-size: 13px; color: var(--muted); padding: 0 12px 8px; }
+    .files-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+      padding: 0 4px 4px 8px;
+    }
+    .files h2 { font-size: 13px; color: var(--muted); padding: 0; }
+    .file-add {
+      min-height: 0;
+      padding: 2px;
+      font-size: 12px;
+      border-radius: 4px;
+      background: var(--panel-2);
+    }
+    .file-row {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+    }
+    .file-row.is-on { background: #3c3c3c; }
     .file {
       display: block;
+      flex: 1 1 auto;
+      min-width: 0;
       width: 100%;
-      min-height: 36px;
-      padding: 8px 12px;
+      min-height: 0;
+      padding: 2px 8px;
       border: 0;
       border-radius: 0;
       background: transparent;
       color: var(--text);
       text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .file.is-on { background: #3c3c3c; }
-    .editor-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-    .tabbar { justify-content: space-between; padding-bottom: 0; }
-    .tab {
+    .file-del {
+      flex: 0 0 auto;
+      min-height: 0;
+      padding: 2px 6px;
       border: 0;
-      border-bottom: 2px solid var(--accent);
       border-radius: 0;
       background: transparent;
-      min-height: 36px;
+      color: var(--muted);
+      font-size: 14px;
     }
+    .file-del:hover { color: var(--bad); }
+    .editor-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .tabbar {
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      gap: 2px;
+      padding: 2px 8px 0;
+      min-width: 0;
+    }
+    .tabs-start {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .tablist {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+      scroll-snap-type: inline proximity;
+    }
+    .tablist::-webkit-scrollbar { display: none; }
+    .tab {
+      position: relative;
+      flex: none;
+      scroll-snap-align: start;
+      border: 0;
+      border-radius: 4px 4px 0 0;
+      background: transparent;
+      color: var(--muted);
+      min-height: 0;
+      padding: 2px 6px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .tab[aria-selected="true"] {
+      color: var(--text);
+      background: #1e1e1e;
+    }
+    .tab[aria-selected="true"]::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      border-bottom: 2px solid var(--accent);
+    }
+    .tab-add, .tab-close {
+      flex: none;
+      min-height: 0;
+      padding: 2px;
+      font-size: 12px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+    .tab-meta {
+      flex: 0 0 auto;
+      font-size: 12px;
+      color: var(--muted);
+      padding-bottom: 2px;
+      white-space: nowrap;
+    }
+    .editor-panel { flex: 0 0 auto; min-width: 0; }
+    .editor-panel[hidden] { display: none !important; }
+    .test-panel-wrap {
+      flex: 0 1 40vh;
+      height: 40vh;
+      min-height: 0;
+      max-height: 40vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--code);
+      overflow: hidden;
+    }
+    .test-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2px;
+      padding: 4px 6px;
+      background: #252525;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .test-sig-hint {
+      font-size: 12px;
+      color: var(--amber);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .test-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      align-items: center;
+    }
+    .test-actions button {
+      min-height: 0;
+      padding: 2px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    #runCustomBtn {
+      background: #8d7b45;
+      color: #f6edd4;
+      border: 0;
+      font-weight: 600;
+    }
+    #results .case-item {
+      padding: 4px 6px;
+      margin: 4px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #results .case-item:hover { background: rgba(255, 255, 255, 0.04); }
+    #results .case-item.is-current { box-shadow: inset 3px 0 0 #e3b341; background: rgba(227, 179, 65, 0.08); }
+    #results .case-item p { margin: 2px 0; }
     .editor-foot, .output-head { border-top: 1px solid var(--line); border-bottom: 0; font-size: 13px; color: var(--muted); }
     .output-head { justify-content: space-between; }
     #runLook { background: #8d7b45; color: #f6edd4; border: 0; }
@@ -447,9 +633,9 @@
     .debug-bar {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 2px;
       align-items: center;
-      padding: 8px;
+      padding: 4px 8px;
       border-bottom: 1px solid var(--line);
     }
     .debug-bar button.is-hot { background: var(--accent); border-color: var(--accent); }
@@ -470,7 +656,7 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; vertical-align: top; }
     @media (min-width: 821px) {
-      #app { grid-template-rows: minmax(calc(40vh + 24.5rem), 1fr) auto; }
+      #app { grid-template-rows: minmax(calc(40vh + 30rem), 1fr) auto; }
       .work { overflow: hidden; }
       .solution-head, #testFile, .tabbar, #think, .editor-foot, .output-head, .debug-bar { flex-shrink: 0; }
       .editor-col { height: 100%; overflow: hidden; }
@@ -489,17 +675,16 @@
       html, body { max-width: 100%; overflow-x: clip; }
       #app { display: block; overflow: visible; max-width: 100%; }
       .statement, .work { overflow: visible; max-width: 100%; min-width: 0; }
-      header.exam-top .pattern-picks button { min-height: 44px; padding: 8px 12px; }
       .statement { border-right: 0; border-bottom: 1px solid var(--line); }
       .stmt-toggle {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 2px;
         width: 100%;
-        min-height: 44px;
-        margin: 0 0 4px;
-        padding: 8px 12px;
+        min-height: 0;
+        margin: 0 0 2px;
+        padding: 2px 6px;
         text-align: left;
         font-weight: 700;
       }
@@ -543,7 +728,10 @@
       .task-field select, .task-bar button { max-width: 100%; }
       button:not(.line-no), a.nav, select {
         min-width: 0;
+        min-height: 0;
         max-width: 100%;
+        padding: 2px;
+        margin: 0;
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
@@ -553,8 +741,18 @@
       header.exam-top button,
       header.exam-top select {
         width: auto;
-        padding: 1px 4px;
+        padding: 2px;
       }
+      header.exam-top .solve-actions button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: clamp(12px, 4.1vw, 16px);
+      }
+      .file { padding: 2px 8px; }
+      .stmt-toggle { margin-bottom: 2px; padding: 2px 6px; }
+      .tabbar { flex-wrap: wrap; padding: 2px 8px 0; }
+      .tablist .tab { white-space: nowrap; padding: 2px 6px; }
       a.nav { display: inline-flex; line-height: normal; }
       .gutter button.line-no { padding: 0 2px; white-space: nowrap; }
     }
@@ -565,7 +763,14 @@
     <div class="exam-bar">
       <div class="top-left">
         <a class="nav" href="./index.html">ポータルへ戻る</a>
-        <a class="nav" href="./result-review.html">結果を分析</a>
+        <span class="lang-slot" id="langSlot">
+          <span class="lang-sizer" aria-hidden="true">結果を分析</span>
+          <select id="statementLangPick" aria-label="問題文の言語">
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select>
+        </span>
+        <a class="nav" id="reviewNav" href="./result-review.html">結果を分析</a>
       </div>
       <div class="clocks">
         <div class="task-clock"><span class="clock-label">問題ごと</span><span class="clock" id="clock" aria-live="polite">--:--</span></div>
@@ -583,9 +788,9 @@
       </div>
     </div>
     <div class="pattern-bar" id="patternBar" hidden>
-      <span class="pattern-label" id="patternLabel">本番前試験練習</span>
-      <div class="pattern-picks" id="patternPicks" role="group" aria-label="試験パターン"></div>
-      <p class="pattern-note" id="patternNote"></p>
+      <label class="pattern-field" id="patternLabel">試験パターン
+        <select id="patternPick" aria-label="試験パターン"></select>
+      </label>
     </div>
     <div class="task-bar">
       <label class="task-field">Task
@@ -604,23 +809,53 @@
       </div>
       <div class="solution-body">
         <aside class="files" aria-label="Files">
-          <h2>Files</h2>
-          <button type="button" class="file is-on" id="fileSol">solution.kt</button>
-          <button type="button" class="file" id="fileTest">test-input.txt</button>
+          <div class="files-head">
+            <h2>Files</h2>
+            <button type="button" class="file-add" id="addTestFileBtn" title="新しいテスト入力ファイルを追加">＋追加</button>
+          </div>
+          <div id="fileList">
+            <div class="file-row is-on">
+              <button type="button" class="file is-on" id="fileSol">solution.kt</button>
+            </div>
+            <div class="file-row">
+              <button type="button" class="file" id="fileTest">test-input.txt</button>
+            </div>
+          </div>
         </aside>
         <div class="editor-col">
           <pre id="testFile">テスト入力は、デバッグ中にここに出ます。</pre>
           <div class="tabbar">
-            <span class="tab">solution.kt</span>
-            <span>Language: Kotlin</span>
+            <div class="tabs-start">
+              <div class="tablist" id="editorTabs" role="tablist" aria-label="開いているファイル">
+                <button type="button" class="tab" role="tab" id="tab-sol" aria-selected="true">solution.kt</button>
+              </div>
+              <button type="button" class="tab-add" id="tabAddTest" title="テスト入力タブを追加">＋ テスト入力</button>
+              <button type="button" class="tab-close" id="tabCloseActive" hidden title="選択中のテスト入力タブを閉じる">タブを閉じる</button>
+            </div>
+            <span class="tab-meta" id="tabMeta">Language: Kotlin</span>
           </div>
-          <div class="codeframe">
-            <div class="gutter" id="gutter" aria-hidden="true"></div>
-            <div class="editor" id="editor">
-              <div class="current-line" id="currentLine"></div>
-              <textarea id="code" spellcheck="false" wrap="off" aria-label="Kotlinコードの入力欄"></textarea>
-              <span class="fake-caret" id="caret" aria-hidden="true"></span>
-              <span class="key-hint" id="keyHint" aria-live="polite"><kbd id="keyName"></kbd><span id="keyNote"></span></span>
+          <div class="editor-panel" id="solPanel" role="tabpanel" aria-labelledby="tab-sol">
+            <div class="codeframe">
+              <div class="gutter" id="gutter" aria-hidden="true"></div>
+              <div class="editor" id="editor">
+                <div class="current-line" id="currentLine"></div>
+                <textarea id="code" spellcheck="false" wrap="off" aria-label="Kotlinコードの入力欄"></textarea>
+                <span class="fake-caret" id="caret" aria-hidden="true"></span>
+                <span class="key-hint" id="keyHint" aria-live="polite"><kbd id="keyName"></kbd><span id="keyNote"></span></span>
+              </div>
+            </div>
+          </div>
+          <div class="editor-panel" id="testPanel" role="tabpanel" aria-label="テスト入力" hidden>
+            <div class="test-panel-wrap">
+              <div class="test-toolbar">
+                <span class="test-sig-hint" id="testSigHint"></span>
+                <div class="test-actions">
+                  <button type="button" id="addCaseLineBtn">＋ ケース行を追加</button>
+                  <button type="button" id="resetTestFileBtn">初期データに戻す</button>
+                  <button type="button" id="runCustomBtn">この入力で動作確認</button>
+                </div>
+              </div>
+              <textarea id="testInputBox" spellcheck="false" wrap="off" aria-label="テスト入力データ（1行1テストケース）"></textarea>
             </div>
           </div>
           <p id="think" aria-live="polite"></p>
@@ -694,6 +929,7 @@
   <script src="./js/reading-lab.js"></script>
   <script src="./js/practice-report.js"></script>
   <script src="./js/exam-patterns.js"></script>
+  <script src="./js/exam-statements-en.js"></script>
   <script src="./js/timed-auto.js"></script>
   <script src="./js/pull-refresh.js"></script>
 </body>
