@@ -1,7 +1,45 @@
 (function (root) {
   "use strict";
 
-  var tasks = (root.ReadingLab && root.ReadingLab.tasks) || [];
+  var allTasks = (root.ReadingLab && root.ReadingLab.tasks) || [];
+  var tasks = allTasks;
+  var rehearsal = false;
+  try {
+    rehearsal = new URLSearchParams(root.location.search).get("mode") === "rehearsal";
+  } catch (error) {
+    rehearsal = false;
+  }
+  var examPatterns = rehearsal && root.EXAM_PATTERNS ? root.EXAM_PATTERNS : [];
+  var patternIndex = 0;
+  var patternLocked = false;
+  var PATTERN_STORE = "timed-rehearsal-pattern-v1";
+
+  function taskListFor(index) {
+    var pattern = examPatterns[index];
+    if (!pattern || !pattern.ids) return [];
+    var byId = {};
+    var i;
+    for (i = 0; i < allTasks.length; i += 1) byId[allTasks[i].id] = allTasks[i];
+    var selected = [];
+    for (i = 0; i < pattern.ids.length; i += 1) {
+      if (byId[pattern.ids[i]]) selected.push(byId[pattern.ids[i]]);
+    }
+    return selected;
+  }
+
+  if (rehearsal && examPatterns.length) {
+    try {
+      var savedPattern = sessionStorage.getItem(PATTERN_STORE);
+      var found = -1;
+      var p;
+      for (p = 0; p < examPatterns.length; p += 1) {
+        if (examPatterns[p].id === savedPattern) found = p;
+      }
+      if (found >= 0) patternIndex = found;
+    } catch (error) { /* The first paper stays selected. */ }
+    tasks = taskListFor(patternIndex);
+    document.title = "本番前試験練習";
+  }
   var answers = root.LAB_ANSWERS || {};
   var pick = document.getElementById("taskPick");
   var statement = document.getElementById("statement");
@@ -42,6 +80,7 @@
       examDeadline = Date.now() + examRemaining;
       examStart.textContent = "一時停止";
       examTicker = window.setInterval(updateExamTimer, 250);
+      if (rehearsal) lockPattern(true);
     }
   });
   examReset.addEventListener("click", function () {
@@ -52,6 +91,7 @@
     examStart.disabled = false;
     examStart.textContent = "開始";
     examStatus.textContent = "";
+    if (rehearsal) lockPattern(false);
     updateExamTimer();
   });
   document.addEventListener("visibilitychange", updateExamTimer);
@@ -76,9 +116,9 @@
   var submitStatus = document.getElementById("submitStatus");
   var submitStatusBottom = document.getElementById("submitStatusBottom");
   var readingQuestions = document.getElementById("readingQuestions");
-  var DRAFT_KEY = "timed-practice-reading-draft-v1";
+  var DRAFT_KEY = rehearsal ? "timed-rehearsal-reading-draft-v1" : "timed-practice-reading-draft-v1";
   var REPORT_KEY = "timed-auto-report-v1";
-  var AUTO_REPORT_KEY = "timed-auto-draft-v1";
+  var AUTO_REPORT_KEY = rehearsal ? "timed-rehearsal-draft-v1" : "timed-auto-draft-v1";
   var readingDraft;
   try { readingDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (error) { readingDraft = null; }
   if (!readingDraft || !readingDraft.selections || typeof readingDraft.selections !== "object") {
@@ -143,6 +183,16 @@
   }
 
   function fillPicker() {
+    pick.innerHTML = "";
+    if (rehearsal) {
+      tasks.forEach(function (task, index) {
+        var option = document.createElement("option");
+        option.value = task.id;
+        option.textContent = "Task " + (index + 1) + "  " + task.title + (runnable(task) ? "" : "（実行対象外）");
+        pick.appendChild(option);
+      });
+      return;
+    }
     var groups = [];
     var seen = {};
     tasks.forEach(function (task) {
@@ -165,13 +215,62 @@
     });
   }
 
+  function paintPatterns() {
+    var bar = document.getElementById("patternBar");
+    var picks = document.getElementById("patternPicks");
+    var note = document.getElementById("patternNote");
+    if (!bar || !picks) return;
+    if (!rehearsal || !examPatterns.length) {
+      bar.hidden = true;
+      return;
+    }
+    bar.hidden = false;
+    picks.innerHTML = "";
+    examPatterns.forEach(function (pattern, index) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.textContent = pattern.label;
+      button.title = pattern.name || pattern.label;
+      button.setAttribute("aria-pressed", index === patternIndex ? "true" : "false");
+      button.disabled = pick.disabled || (patternLocked && index !== patternIndex);
+      button.addEventListener("click", function () { choosePattern(index); });
+      picks.appendChild(button);
+    });
+    if (note) {
+      var current = examPatterns[patternIndex];
+      var name = current && current.name ? current.name + "。" : "";
+      note.textContent = patternLocked
+        ? name + "試験中です。パターンはリセットするまで固定です。"
+        : name + "5問・制限時間200分。開始するとパターンは固定されます。";
+    }
+  }
+
+  function lockPattern(locked) {
+    patternLocked = !!locked;
+    paintPatterns();
+  }
+
+  function choosePattern(index) {
+    if (!rehearsal || patternLocked || pick.disabled) return;
+    if (index === patternIndex || !examPatterns[index]) return;
+    patternIndex = index;
+    try { sessionStorage.setItem(PATTERN_STORE, examPatterns[index].id); } catch (error) { /* The paper still changes for this view. */ }
+    tasks = taskListFor(index);
+    fillPicker();
+    paintPatterns();
+    pick.dispatchEvent(new Event("change"));
+  }
+
   function applyStatementCollapse() {
     if (!statement) return;
-    statement.classList.toggle("is-collapsed", !!statementCollapsed);
+    var isPhone = phoneQuery.matches;
+    var collapsed = isPhone && !!statementCollapsed;
+    statement.classList.toggle("is-collapsed", collapsed);
     var toggle = statement.querySelector(".stmt-toggle");
     if (!toggle) return;
-    toggle.setAttribute("aria-expanded", statementCollapsed ? "false" : "true");
-    toggle.textContent = statementCollapsed ? "問題文を開く" : "問題文を閉じる";
+    toggle.hidden = !isPhone;
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.textContent = collapsed ? "問題文を開く" : "問題文を閉じる";
   }
 
   function writingLineIndex(pos, from, to, count) {
@@ -215,10 +314,11 @@
   }
 
   function scrollAmberIntoView() {
+    if (!phoneQuery.matches) return;
     var body = statement.querySelector(".stmt-body");
-    if (!body || !statement.classList.contains("is-collapsed")) return;
+    if (!body) return;
     var line = body.querySelector(".stmt-line.is-amber") || statement.querySelector("h1.is-amber");
-    if (line && body.contains(line)) {
+    if (line && body.contains(line) && body.scrollHeight > body.clientHeight + 1) {
       var delta = line.getBoundingClientRect().top - body.getBoundingClientRect().top;
       body.scrollTop = Math.max(0, body.scrollTop + delta);
     }
@@ -244,17 +344,25 @@
   }
 
   function onStatementToggle() {
+    if (!phoneQuery.matches) return;
     statementCollapsed = !statementCollapsed;
     statementUserSet = true;
     if (solveHighlightActive) userToggledDuringRun = true;
     applyStatementCollapse();
-    if (statementCollapsed && solveHighlightActive) scrollAmberSoon();
+    if (solveHighlightActive) scrollAmberSoon();
   }
 
   function onPhoneStatementChange() {
-    if (statementUserSet || solveHighlightActive) return;
-    statementCollapsed = phoneQuery.matches;
+    if (!phoneQuery.matches) {
+      statementCollapsed = false;
+      applyStatementCollapse();
+      return;
+    }
+    if (!statementUserSet || solveHighlightActive) {
+      statementCollapsed = true;
+    }
     applyStatementCollapse();
+    if (solveHighlightActive) scrollAmberSoon();
   }
 
   function forceStatementClosed() {
@@ -264,7 +372,8 @@
     if (!solveHighlightActive) collapsedBeforeRun = statementCollapsed;
     solveHighlightActive = true;
     userToggledDuringRun = false;
-    statementCollapsed = true;
+    if (phoneQuery.matches) statementCollapsed = true;
+    else statementCollapsed = false;
     applyStatementCollapse();
   }
 
@@ -290,8 +399,11 @@
         for (i = 0; i < ambers.length; i += 1) ambers[i].classList.remove("is-amber");
       }
       if (was) {
-        if (phoneQuery.matches) statementCollapsed = true;
-        else if (!userToggledDuringRun) statementCollapsed = !!collapsedBeforeRun;
+        if (phoneQuery.matches) {
+          if (!userToggledDuringRun) statementCollapsed = collapsedBeforeRun !== null ? !!collapsedBeforeRun : true;
+        } else {
+          statementCollapsed = false;
+        }
         userToggledDuringRun = false;
         collapsedBeforeRun = null;
         applyStatementCollapse();
@@ -395,6 +507,7 @@
     submitAnswersBottom.disabled = busy;
     codeBox.readOnly = busy;
     document.getElementById("runLook").disabled = busy;
+    if (rehearsal) paintPatterns();
   }
 
   function formatClock(ms) {
@@ -1283,6 +1396,12 @@
   if (phoneQuery.addEventListener) phoneQuery.addEventListener("change", onPhoneStatementChange);
   else if (phoneQuery.addListener) phoneQuery.addListener(onPhoneStatementChange);
 
+  if (rehearsal) {
+    var readingSection = document.getElementById("readingSection");
+    if (readingSection) readingSection.hidden = true;
+    if (solveAll) solveAll.textContent = "この5問のうち実行できる問題を順に解く";
+  }
+  paintPatterns();
   fillPicker();
   showVars([]);
   if (tasks[0]) {

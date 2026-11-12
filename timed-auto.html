@@ -76,6 +76,34 @@
       max-width: 100%;
       white-space: normal;
     }
+    .pattern-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+    }
+    .pattern-bar[hidden] { display: none !important; }
+    .pattern-label {
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pattern-picks { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+    .pattern-picks button[aria-pressed="true"] {
+      border-color: var(--accent);
+      background: #3a3778;
+      color: #fff;
+    }
+    .pattern-note {
+      margin: 0;
+      flex: 1 1 14rem;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
     header.exam-top a.nav,
     header.exam-top button,
     header.exam-top select,
@@ -140,8 +168,10 @@
       grid-template-rows: minmax(400px, 1fr) auto;
       overflow-y: auto;
     }
-    .statement, .work { min-height: 0; overflow: auto; }
+    .statement, .work { min-height: 0; }
+    .work { overflow: auto; }
     .statement {
+      overflow: visible;
       border-right: 1px solid var(--line);
       background: #2a2a2a;
       padding: 4px 8px 8px;
@@ -162,31 +192,8 @@
       background: #3a3328;
       border: 0;
     }
-    .stmt-toggle {
-      display: flex;
-      align-items: center;
-      width: 100%;
-      min-height: 44px;
-      margin: 0 0 4px;
-      text-align: left;
-      font-weight: 700;
-    }
+    .stmt-toggle { display: none; }
     .stmt-body { min-width: 0; }
-    /* Phone sets .statement { overflow: visible }, so the clip lives on the inner body. */
-    .statement.is-collapsed .stmt-body {
-      max-height: calc(1.35em * 3);
-      overflow-x: hidden;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-    }
-    .statement.is-collapsed .stmt-body p,
-    .statement.is-collapsed .stmt-body li,
-    .statement.is-collapsed .stmt-body h2,
-    .statement.is-collapsed .stmt-body pre,
-    .statement.is-collapsed .stmt-body ul {
-      margin-top: 0;
-      margin-bottom: 0;
-    }
     @keyframes stmt-amber {
       0%, 100% { background-color: rgba(230, 177, 90, 0.12); }
       50% { background-color: rgba(230, 177, 90, 0.55); }
@@ -238,9 +245,16 @@
     #runLook { background: #8d7b45; color: #f6edd4; border: 0; }
     #runLook.is-hot { background: #d7b15a; color: #1a1a1a; }
     #testFile {
+      display: block;
+      width: 100%;
       margin: 0;
-      min-height: 64px;
+      min-height: 52px;
+      padding: 8px 12px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
       color: var(--amber);
       background: #1e1e1e;
     }
@@ -409,6 +423,7 @@
     }
     @media (prefers-reduced-motion: reduce) {
       #think.is-on, .fake-caret, .explain, .key-hint.is-on { animation: none; }
+      .stmt-toggle::after { transition: none; }
       .statement.is-solving .stmt-line.is-amber,
       .statement.is-solving h1.is-amber {
         animation: none;
@@ -455,9 +470,9 @@
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { border-bottom: 1px solid var(--line); text-align: left; padding: 6px 4px; vertical-align: top; }
     @media (min-width: 821px) {
-      #app { grid-template-rows: minmax(calc(40vh + 21rem), 1fr) auto; }
+      #app { grid-template-rows: minmax(calc(40vh + 24.5rem), 1fr) auto; }
       .work { overflow: hidden; }
-      .solution-head, .tabbar, #think, .editor-foot, .output-head, .debug-bar { flex-shrink: 0; }
+      .solution-head, #testFile, .tabbar, #think, .editor-foot, .output-head, .debug-bar { flex-shrink: 0; }
       .editor-col { height: 100%; overflow: hidden; }
       .debug-dock {
         flex: 1 1 0px;
@@ -474,7 +489,52 @@
       html, body { max-width: 100%; overflow-x: clip; }
       #app { display: block; overflow: visible; max-width: 100%; }
       .statement, .work { overflow: visible; max-width: 100%; min-width: 0; }
+      header.exam-top .pattern-picks button { min-height: 44px; padding: 8px 12px; }
       .statement { border-right: 0; border-bottom: 1px solid var(--line); }
+      .stmt-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 44px;
+        margin: 0 0 4px;
+        padding: 8px 12px;
+        text-align: left;
+        font-weight: 700;
+      }
+      .stmt-toggle::after {
+        content: "";
+        width: 0.55em;
+        height: 0.55em;
+        flex-shrink: 0;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-135deg);
+        transition: transform 0.2s ease;
+      }
+      .stmt-toggle[aria-expanded="false"]::after {
+        transform: rotate(45deg);
+      }
+      .stmt-body {
+        max-height: 45vh;
+        max-height: 45dvh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+      .statement.is-collapsed .stmt-body {
+        max-height: calc(1.35em * 3);
+      }
+      .statement.is-collapsed .stmt-body p,
+      .statement.is-collapsed .stmt-body li,
+      .statement.is-collapsed .stmt-body h2,
+      .statement.is-collapsed .stmt-body pre,
+      .statement.is-collapsed .stmt-body ul {
+        margin-top: 0;
+        margin-bottom: 0;
+      }
       body { height: auto; }
       .debug-grid { grid-template-columns: 1fr; }
       .solution-body { display: block; }
@@ -522,6 +582,11 @@
         <span class="submit-status" id="submitStatus" role="status"></span>
       </div>
     </div>
+    <div class="pattern-bar" id="patternBar" hidden>
+      <span class="pattern-label" id="patternLabel">本番前試験練習</span>
+      <div class="pattern-picks" id="patternPicks" role="group" aria-label="試験パターン"></div>
+      <p class="pattern-note" id="patternNote"></p>
+    </div>
     <div class="task-bar">
       <label class="task-field">Task
         <select id="taskPick" aria-label="問題"></select>
@@ -542,9 +607,9 @@
           <h2>Files</h2>
           <button type="button" class="file is-on" id="fileSol">solution.kt</button>
           <button type="button" class="file" id="fileTest">test-input.txt</button>
-          <pre id="testFile">テスト入力は、デバッグ中にここに出ます。</pre>
         </aside>
         <div class="editor-col">
+          <pre id="testFile">テスト入力は、デバッグ中にここに出ます。</pre>
           <div class="tabbar">
             <span class="tab">solution.kt</span>
             <span>Language: Kotlin</span>
@@ -628,6 +693,7 @@
   <script>window.SKIP_READING_LAB_BOOT = true;</script>
   <script src="./js/reading-lab.js"></script>
   <script src="./js/practice-report.js"></script>
+  <script src="./js/exam-patterns.js"></script>
   <script src="./js/timed-auto.js"></script>
   <script src="./js/pull-refresh.js"></script>
 </body>
