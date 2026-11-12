@@ -3,6 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    (function () {
+      if (location.protocol === "file:") return;
+      var at = location.pathname.indexOf("/md/");
+      if (at < 0) return;
+      var base = document.createElement("base");
+      base.setAttribute("href", location.pathname.slice(0, at + 1));
+      document.head.insertBefore(base, document.currentScript);
+    })();
+  </script>
   <title>Markdown preview</title>
   <link rel="stylesheet" href="./vendor/github-markdown/github-markdown-dark.min.css" id="gfm-theme" />
   <link rel="stylesheet" href="./vendor/katex/katex.min.css" />
@@ -51,7 +61,10 @@
       }
       const fileName = decodeURIComponent(mdUrl.split("/").pop().split("?")[0].split("#")[0]);
       const hashPart = mdUrl.includes("#") ? "::" + encodeURIComponent(decodeURIComponent(mdUrl.split("#").slice(1).join("#"))) : "";
-      const targetPortalUrl = "./#" + encodeURIComponent(fileName) + hashPart;
+      const rootHref = document.querySelector("base")
+        ? document.querySelector("base").href
+        : new URL("./", location.href).href;
+      const targetPortalUrl = new URL("#" + encodeURIComponent(fileName) + hashPart, rootHref).href;
       document.title = fileName;
       document.getElementById("portalLink").href = targetPortalUrl;
       location.replace(targetPortalUrl);

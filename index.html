@@ -1183,17 +1183,17 @@
       function docsFromDataMap(map) {
         const built = [];
         Object.keys(map || {}).forEach((path) => {
-          if (path === "README.md" || path.startsWith("別途分析/")) return;
+          if (path === "md/README.md" || path.startsWith("md/別途分析/")) return;
           const base = path.split("/").pop();
           const title = base.replace(/\.(md|kt)$/i, "");
           let category;
           let categoryLabel;
           let type;
-          if (path.startsWith("公式Lesson/")) {
+          if (path.startsWith("md/公式Lesson/")) {
             category = "lesson";
             categoryLabel = "🎓 公式のlessonの問題";
             type = "markdown";
-          } else if (path.startsWith("模擬試験_問題リスト/")) {
+          } else if (path.startsWith("md/模擬試験_問題リスト/")) {
             category = "exam";
             categoryLabel = "📝 模擬試験・解答バンク";
             type = "markdown";

@@ -88,8 +88,8 @@ fun getActiveUserNames(users: List<User>?): List<String> {
 ### ③ 型システムによる状態の表現（ドメインモデリング）
 Webテストの実装問題（API仕様、ログ解析、ViewModel状態管理など）では、プリミティブ型（`String` や `Int`）のまま引き回すのではなく、**コンパクトな `data class` や `enum class` / `sealed interface` に切り出す**と非常に高く評価されます。
 
-* **UI状態・通信結果**: `Int` や `Boolean` フラグの組み合わせではなく、`sealed interface SearchUiState`（`Idle`, `Loading`, `Content`, `Empty`, `Error`）を使い、`when` 式で網羅性（Exhaustiveness）をコンパイラに保証させる（[領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt](<./kotlin/領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt>)）。
-* **ログ解析・集計タスク**: 入出力の1行を `private data class CallLog(val num: Long, val sec: Int)` に分離し、パース処理 `parse(raw): CallLog?`、料金計算 `cost(sec): Int`、集計処理を単一責任の関数に分ける（[領域7_実務型文字列ログ解析_通話料金集計.kt](<./kotlin/領域7_実務型文字列ログ解析_通話料金集計.kt>)）。
+* **UI状態・通信結果**: `Int` や `Boolean` フラグの組み合わせではなく、`sealed interface SearchUiState`（`Idle`, `Loading`, `Content`, `Empty`, `Error`）を使い、`when` 式で網羅性（Exhaustiveness）をコンパイラに保証させる（[領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt](<../kotlin/領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt>)）。
+* **ログ解析・集計タスク**: 入出力の1行を `private data class CallLog(val num: Long, val sec: Int)` に分離し、パース処理 `parse(raw): CallLog?`、料金計算 `cost(sec): Int`、集計処理を単一責任の関数に分ける（[領域7_実務型文字列ログ解析_通話料金集計.kt](<../kotlin/領域7_実務型文字列ログ解析_通話料金集計.kt>)）。
 
 ### ④ 「3〜4文字の高速打鍵ルール」と「リーダブルコード」の黄金の使い分け
 

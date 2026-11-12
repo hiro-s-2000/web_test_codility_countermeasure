@@ -4,10 +4,10 @@
 # 【5問・200分特化】Codility「バグ修正（Bugfixing）・Android実務実装・単体テスト・知識問題」完全攻略バイブル
 
 > **📂 本バイブルに対応する実践Kotlinコード ＆ 本番再現フル模試（Previewクリック遷移対応）**
-> - 🐛 **バグ修正ドリル（`.kt`）**: [領域13_バグ修正特訓_Codility頻出8大Bugfixing演習と解答.kt](<./kotlin/領域13_バグ修正特訓_Codility頻出8大Bugfixing演習と解答.kt>)
-> - 📱 **ViewModel + Coroutines実装（`.kt`）**: [領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt](<./kotlin/領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt>)
-> - 🌐 **OkHttp Interceptor + フォーム検証（`.kt`）**: [領域15_Android実装_OkHttp認証リトライInterceptorとフォーム検証テンプレート.kt](<./kotlin/領域15_Android実装_OkHttp認証リトライInterceptorとフォーム検証テンプレート.kt>)
-> - 🧩 **UI可視範囲二分探索 + App Startup DAG（`.kt`）**: [領域16_Android実装_非再帰トポロジカルソートとView可視範囲二分探索.kt](<./kotlin/領域16_Android実装_非再帰トポロジカルソートとView可視範囲二分探索.kt>)
+> - 🐛 **バグ修正ドリル（`.kt`）**: [領域13_バグ修正特訓_Codility頻出8大Bugfixing演習と解答.kt](<../kotlin/領域13_バグ修正特訓_Codility頻出8大Bugfixing演習と解答.kt>)
+> - 📱 **ViewModel + Coroutines実装（`.kt`）**: [領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt](<../kotlin/領域14_Android実装_ViewModelとCoroutines状態遷移テンプレート.kt>)
+> - 🌐 **OkHttp Interceptor + フォーム検証（`.kt`）**: [領域15_Android実装_OkHttp認証リトライInterceptorとフォーム検証テンプレート.kt](<../kotlin/領域15_Android実装_OkHttp認証リトライInterceptorとフォーム検証テンプレート.kt>)
+> - 🧩 **UI可視範囲二分探索 + App Startup DAG（`.kt`）**: [領域16_Android実装_非再帰トポロジカルソートとView可視範囲二分探索.kt](<../kotlin/領域16_Android実装_非再帰トポロジカルソートとView可視範囲二分探索.kt>)
 > - 🏆 **本番完全再現「5問・200分」フル模試**: [セット5_【本番完全再現・5問200分フル模試】問題冊子.md](<./模擬試験_問題リスト/セット5_【本番完全再現・5問200分フル模試】問題冊子.md>) ｜ [解答・解説・1次面接尋問.md](<./模擬試験_問題リスト/セット5_【本番完全再現・5問200分フル模試】解答・解説・1次面接尋問.md>)
 
 大手テック企業・メガベンチャーのAndroid中途採用におけるCodilityアセスメント（**200 minutes for 5 tasks**）は、一般的な「アルゴリズム3問・90〜120分」の試験とは明確に構成が異なります。
