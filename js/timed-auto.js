@@ -91,6 +91,15 @@
   var keyNote = document.getElementById("keyNote");
   var session = 0;
   var records = [];
+  var phoneQuery = window.matchMedia("(max-width: 820px)");
+  var statementTaskId = "";
+  var statementCollapsed = phoneQuery.matches;
+  var statementUserSet = false;
+  var userToggledDuringRun = false;
+  var collapsedBeforeRun = null;
+  var solveHighlightActive = false;
+  var solveHighlightTimer = 0;
+  var highlightGen = 0;
 
   function showSubmitStatus(message) {
     submitStatus.textContent = message;
@@ -155,26 +164,156 @@
     });
   }
 
+  function applyStatementCollapse() {
+    if (!statement) return;
+    statement.classList.toggle("is-collapsed", !!statementCollapsed);
+    var toggle = statement.querySelector(".stmt-toggle");
+    if (!toggle) return;
+    toggle.setAttribute("aria-expanded", statementCollapsed ? "false" : "true");
+    toggle.textContent = statementCollapsed ? "問題文を開く" : "問題文を閉じる";
+  }
+
+  function markAmberLines() {
+    var lines = statement.querySelectorAll(".stmt-line");
+    var i;
+    if (!lines.length) {
+      var title = statement.querySelector("h1");
+      if (title) title.classList.add("is-amber");
+      return;
+    }
+    for (i = 0; i < lines.length; i += 1) lines[i].classList.add("is-amber");
+  }
+
+  function scrollAmberIntoView() {
+    var body = statement.querySelector(".stmt-body");
+    if (!body || !statement.classList.contains("is-collapsed")) return;
+    var line = body.querySelector(".stmt-line.is-amber") || statement.querySelector("h1.is-amber");
+    if (line && body.contains(line)) {
+      var delta = line.getBoundingClientRect().top - body.getBoundingClientRect().top;
+      body.scrollTop = Math.max(0, body.scrollTop + delta);
+    }
+    var focus = line && body.contains(line) ? line : body;
+    var rect = focus.getBoundingClientRect();
+    if (rect.height > 0 && rect.top >= 0 && rect.top < window.innerHeight - 16) return;
+    var parent = body.parentElement;
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      var oy = window.getComputedStyle(parent).overflowY;
+      if ((oy === "auto" || oy === "scroll" || oy === "overlay") && parent.scrollHeight > parent.clientHeight + 1) {
+        parent.scrollTop += rect.top - parent.getBoundingClientRect().top - 8;
+        return;
+      }
+      parent = parent.parentElement;
+    }
+    window.scrollTo(0, Math.max(0, (window.scrollY || 0) + rect.top - 8));
+  }
+
+  function scrollAmberSoon() {
+    window.requestAnimationFrame(function () {
+      window.requestAnimationFrame(scrollAmberIntoView);
+    });
+  }
+
+  function onStatementToggle() {
+    statementCollapsed = !statementCollapsed;
+    statementUserSet = true;
+    if (solveHighlightActive) userToggledDuringRun = true;
+    applyStatementCollapse();
+    if (statementCollapsed && solveHighlightActive) scrollAmberSoon();
+  }
+
+  function onPhoneStatementChange() {
+    if (statementUserSet || solveHighlightActive) return;
+    statementCollapsed = phoneQuery.matches;
+    applyStatementCollapse();
+  }
+
+  function beginSolveHighlight() {
+    highlightGen += 1;
+    window.clearTimeout(solveHighlightTimer);
+    solveHighlightTimer = 0;
+    if (!solveHighlightActive) collapsedBeforeRun = statementCollapsed;
+    solveHighlightActive = true;
+    userToggledDuringRun = false;
+    statementCollapsed = true;
+    statement.classList.add("is-solving");
+    applyStatementCollapse();
+    markAmberLines();
+    scrollAmberSoon();
+  }
+
+  function endSolveHighlight(delay) {
+    var gen = highlightGen;
+    window.clearTimeout(solveHighlightTimer);
+    solveHighlightTimer = 0;
+    function finish() {
+      if (gen !== highlightGen) return;
+      solveHighlightTimer = 0;
+      var was = solveHighlightActive;
+      solveHighlightActive = false;
+      if (statement) {
+        statement.classList.remove("is-solving");
+        var ambers = statement.querySelectorAll(".is-amber");
+        var i;
+        for (i = 0; i < ambers.length; i += 1) ambers[i].classList.remove("is-amber");
+      }
+      if (was) {
+        if (phoneQuery.matches) statementCollapsed = true;
+        else if (!userToggledDuringRun) statementCollapsed = !!collapsedBeforeRun;
+        userToggledDuringRun = false;
+        collapsedBeforeRun = null;
+        applyStatementCollapse();
+      }
+      setRunning(false);
+    }
+    if (delay > 0) solveHighlightTimer = window.setTimeout(finish, delay);
+    else finish();
+  }
+
   function renderStatement(task) {
     var pack = packOf(task);
+    var nextId = task && task.id ? task.id : "";
+    if (nextId !== statementTaskId) {
+      if (statementTaskId) {
+        highlightGen += 1;
+        endSolveHighlight(0);
+      }
+      statementTaskId = nextId;
+      statementUserSet = false;
+      userToggledDuringRun = false;
+      statementCollapsed = phoneQuery.matches;
+    }
     statement.textContent = "";
+    var toggle = el("button", "stmt-toggle", "");
+    toggle.type = "button";
+    toggle.setAttribute("aria-controls", "stmtBody");
+    toggle.addEventListener("click", onStatementToggle);
+    statement.appendChild(toggle);
     statement.appendChild(el("p", "muted", "Task"));
     statement.appendChild(el("h1", null, task.title));
     statement.appendChild(el("p", "muted", "制限時間 " + task.minutes + " 分"));
+    var body = el("div", "stmt-body");
+    body.id = "stmtBody";
     (pack.sentences || []).forEach(function (sentence) {
-      statement.appendChild(el("p", null, sentence.text));
+      body.appendChild(el("p", "stmt-line", sentence.text));
     });
-    statement.appendChild(el("h2", null, "関数"));
-    statement.appendChild(el("pre", null, task.signature || ""));
-    statement.appendChild(el("h2", null, "例"));
-    statement.appendChild(el("pre", null, pack.example || ""));
+    body.appendChild(el("h2", null, "関数"));
+    body.appendChild(el("pre", null, task.signature || ""));
+    body.appendChild(el("h2", null, "例"));
+    body.appendChild(el("pre", null, pack.example || ""));
     if ((pack.assumptions || []).length) {
-      statement.appendChild(el("h2", null, "前提"));
+      body.appendChild(el("h2", null, "前提"));
       var list = document.createElement("ul");
       pack.assumptions.forEach(function (item) {
-        list.appendChild(el("li", null, assumptionText(item)));
+        list.appendChild(el("li", "stmt-line", assumptionText(item)));
       });
-      statement.appendChild(list);
+      body.appendChild(list);
+    }
+    statement.appendChild(body);
+    applyStatementCollapse();
+    if (solveHighlightActive) {
+      statement.classList.add("is-solving");
+      markAmberLines();
+      scrollAmberSoon();
     }
     renderReadingQuestions(task);
   }
@@ -412,6 +551,7 @@
   async function debugTests(source, tests, token, clock) {
     results.textContent = "";
     setRunning(true);
+    beginSolveHighlight();
     setHot("");
     placeCurrentLine(0);
     renderGutter({}, 0);
@@ -855,6 +995,8 @@
   }
 
   async function solve(task, token) {
+    highlightGen += 1;
+    endSolveHighlight(0);
     renderStatement(task);
     showShell(task);
     results.textContent = "";
@@ -940,6 +1082,7 @@
       return session === token;
     } finally {
       window.clearInterval(ticker);
+      endSolveHighlight(0);
       setRunning(false);
       showFile("sol");
     }
@@ -1025,6 +1168,9 @@
   });
   function halt() {
     session += 1;
+    highlightGen += 1;
+    endSolveHighlight(0);
+    setRunning(false);
     setBusy(false);
     idleEditor();
     var selectedTask = taskById(pick.value);
@@ -1069,6 +1215,8 @@
     if (!task.runnable || !(task.tests || []).length) {
       run.error = "この問題は練習用実行機で実行できません。外部IDEで確認してください。";
     } else {
+      beginSolveHighlight();
+      setRunning(true);
       try {
         var outcome = root.Kotlite.runTests(source, task.tests);
         if (outcome.paused || !outcome.results || outcome.results.length !== task.tests.length) {
@@ -1081,6 +1229,7 @@
       } catch (error) {
         run.error = (error && error.message) ? error.message : "実行できませんでした。";
       }
+      endSolveHighlight(2400);
     }
     readingDraft.runs[task.id] = run;
     saveDraft();
@@ -1091,6 +1240,9 @@
     gutter.scrollTop = codeBox.scrollTop;
     placeCurrentLine(currentLineNo);
   });
+
+  if (phoneQuery.addEventListener) phoneQuery.addEventListener("change", onPhoneStatementChange);
+  else if (phoneQuery.addListener) phoneQuery.addListener(onPhoneStatementChange);
 
   fillPicker();
   showVars([]);

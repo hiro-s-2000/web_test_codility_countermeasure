@@ -162,6 +162,41 @@
       background: #3a3328;
       border: 0;
     }
+    .stmt-toggle {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 44px;
+      margin: 0 0 4px;
+      text-align: left;
+      font-weight: 700;
+    }
+    .stmt-body { min-width: 0; }
+    /* Phone sets .statement { overflow: visible }, so the clip lives on the inner body. */
+    .statement.is-collapsed .stmt-body {
+      max-height: calc(1.35em * 3);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .statement.is-collapsed .stmt-body p,
+    .statement.is-collapsed .stmt-body li,
+    .statement.is-collapsed .stmt-body h2,
+    .statement.is-collapsed .stmt-body pre,
+    .statement.is-collapsed .stmt-body ul {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    @keyframes stmt-amber {
+      0%, 100% { background-color: rgba(230, 177, 90, 0.12); }
+      50% { background-color: rgba(230, 177, 90, 0.55); }
+    }
+    .statement.is-solving .stmt-line.is-amber,
+    .statement.is-solving h1.is-amber {
+      animation: stmt-amber 0.8s ease-in-out infinite;
+      box-shadow: inset 3px 0 0 var(--amber);
+      border-radius: 2px;
+    }
     .work { padding: 0; display: flex; flex-direction: column; background: #1e1e1e; }
     .solution-head, .tabbar, .editor-foot, .output-head {
       display: flex;
@@ -374,6 +409,11 @@
     }
     @media (prefers-reduced-motion: reduce) {
       #think.is-on, .fake-caret, .explain, .key-hint.is-on { animation: none; }
+      .statement.is-solving .stmt-line.is-amber,
+      .statement.is-solving h1.is-amber {
+        animation: none;
+        background-color: rgba(230, 177, 90, 0.45);
+      }
     }
     #log { margin: 0 0 12px; padding-left: 1.2em; }
     .pass { color: var(--green); }
