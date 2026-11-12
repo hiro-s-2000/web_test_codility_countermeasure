@@ -743,12 +743,6 @@
         width: auto;
         padding: 2px;
       }
-      header.exam-top .pattern-bar select,
-      header.exam-top .lang-slot select {
-        min-height: 44px;
-        padding: 8px 12px;
-        font-size: 16px;
-      }
       header.exam-top .solve-actions button {
         white-space: nowrap;
         overflow: hidden;
@@ -759,6 +753,33 @@
       .stmt-toggle { margin-bottom: 2px; padding: 2px 6px; }
       .tabbar { flex-wrap: wrap; padding: 2px 8px 0; }
       .tablist .tab { white-space: nowrap; padding: 2px 6px; }
+      .codeframe,
+      .test-panel-wrap {
+        flex: 0 1 20vh;
+        flex-basis: 20dvh;
+        height: 20vh;
+        height: 20dvh;
+        min-height: 0;
+        max-height: 20vh;
+        max-height: 20dvh;
+        overflow: hidden;
+      }
+      .codeframe .editor,
+      .gutter {
+        min-height: 0;
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+      }
+      .codeframe textarea,
+      .test-panel-wrap textarea {
+        min-height: 0;
+        max-height: 100%;
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+      }
       a.nav { display: inline-flex; line-height: normal; }
       .gutter button.line-no { padding: 0 2px; white-space: nowrap; }
     }
