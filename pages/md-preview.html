@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script>
     (function () {
-      if (location.protocol === "file:") return;
-      var at = location.pathname.indexOf("/md/");
-      if (at < 0) return;
+      /* The base is always the site root: this shell is served either in place of a
+         Markdown file under md/, or directly from the pages folder. */
+      var at = location.protocol === "file:" ? -1 : location.pathname.indexOf("/md/");
       var base = document.createElement("base");
-      base.setAttribute("href", location.pathname.slice(0, at + 1));
+      base.setAttribute("href", at < 0 ? new URL("../", location.href).href : location.pathname.slice(0, at + 1));
       document.head.insertBefore(base, document.currentScript);
     })();
   </script>
@@ -47,7 +47,7 @@
 <body>
   <div class="bar">
     <strong>Markdown preview</strong>
-    <a id="portalLink" href="./">ポータルで開く</a>
+    <a id="portalLink" href="pages/index.html">ポータルで開く</a>
   </div>
   <article class="markdown-body wrap" id="doc"></article>
   <script>
@@ -55,7 +55,7 @@
       const params = new URLSearchParams(location.search);
       const mdUrl = params.get("src") || "__MD_URL__";
       const doc = document.getElementById("doc");
-      if (!mdUrl || mdUrl === "__MD_URL__") {
+      if (!mdUrl || mdUrl === "__MD" + "_URL__") {
         doc.innerHTML = "<p>プレビューする Markdown の場所が指定されていません。</p>";
         return;
       }
@@ -64,7 +64,7 @@
       const rootHref = document.querySelector("base")
         ? document.querySelector("base").href
         : new URL("./", location.href).href;
-      const targetPortalUrl = new URL("#" + encodeURIComponent(fileName) + hashPart, rootHref).href;
+      const targetPortalUrl = new URL("pages/index.html#" + encodeURIComponent(fileName) + hashPart, rootHref).href;
       document.title = fileName;
       document.getElementById("portalLink").href = targetPortalUrl;
       location.replace(targetPortalUrl);

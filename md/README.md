@@ -4,7 +4,7 @@
 👉 **[https://hiro-s-2000.github.io/web_test_codility_countermeasure/](https://hiro-s-2000.github.io/web_test_codility_countermeasure/)**
 
 🧪 **制限時間で解く・読解練習:**
-👉 **[timed-auto.html](https://hiro-s-2000.github.io/web_test_codility_countermeasure/timed-auto.html)**
+👉 **[pages/timed-auto.html](https://hiro-s-2000.github.io/web_test_codility_countermeasure/pages/timed-auto.html)**
 問題を選び、ブラウザ内にコードを入力するか、外部IDEで書いたKotlinコードをコピーして貼り付けます。「Run code」でサンプルを試せます。画面下部の読解問題にも回答でき、複数の問題に回答してから「提出する」を押すと、入力コード、サンプル結果、読解の正誤・選んだ答え・正解を確認できます。入力途中のコード・回答と提出結果は、このブラウザに保存されます。回答した問題の未回答の設問は不正解として数えます。
 
 同じ画面で、解答コードの自動入力とサンプル実行の様子も確認できます。これは自動実行であり、自分の入力コードとは別です。練習用実行機はブラウザ内の Kotlin の一部だけに対応し、class や data class は実行できません。実際のKotlinコンパイラ・本番の評価環境とは異なります。問題文は公式問題文の転載ではありません。本番での外部IDE、コピー＆ペースト、翻訳やカメラ監視の条件は、受験案内や開始前の説明で確認してください。
