@@ -1100,9 +1100,12 @@
       </div>
     </div>
     <div class="topbar-right">
-      <a class="icon-btn" href="./reading-lab.html">コード連想トレ</a>
-      <a class="icon-btn" href="./timed-auto.html?mode=rehearsal" title="5問・200分の本番前試験練習。パターンは15種類">本番前試験練習</a>
-      <a class="icon-btn" href="./timed-auto.html" title="問題文を表示し、制限時間内にコードを入力してサンプルを実行する">制限時間で解く</a>
+      <select class="icon-btn" id="modePick" aria-label="練習モードを開く" title="練習の画面を開きます。開いた先でも同じ選択欄でモードを切り替えられます">
+        <option value="" selected>練習モード</option>
+        <option value="imagine">コード連想トレ</option>
+        <option value="rehearsal">本番前試験練習</option>
+        <option value="timed">制限時間で解く</option>
+      </select>
       <button class="icon-btn" id="themeBtn" title="テーマ切替">🌙 外観切替</button>
       <a class="icon-btn" href="https://github.com/hiro-s-2000/web_test_codility_countermeasure" target="_blank" rel="noopener">GitHub</a>
     </div>
@@ -2608,6 +2611,7 @@
       }
     })();
   </script>
+  <script src="./js/mode-pick.js"></script>
   <script src="./js/pull-refresh.js"></script>
 </body>
 </html>

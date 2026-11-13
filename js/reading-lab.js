@@ -498,27 +498,22 @@
   root.ReadingLab = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 
-  if (typeof document === "undefined" || root.SKIP_READING_LAB_BOOT) return;
+  if (typeof document === "undefined") return;
 
+  /* The trainer below is the reading and code-imagination part of the practice page.
+     timed-auto.js mounts it; this file no longer owns a page of its own. */
   var STORE = "reading-lab-v3";
-  var stepTimer = 0;
 
   var SIGNAL_REGEX = /\b(contiguous slices?|contiguous subarray|contiguous|at least|at most|minimize the maximum|inclusive|half-open|odd number of times|even number of times|non-overlapping|simultaneously|4-directionally|prerequisite|cycle|least recently used|LRU|leading zeros?|divisors?|modulo|cooldown|1,000,000,000|10,000,000,000|1,048,575|returns -1)\b/gi;
 
   function emptyState() {
     return {
-      taskId: tasks[0].id,
-      langMode: "en-peek",
-      freeUnlock: false,
-      theme: "dark",
       solved: {},
       patternOk: {},
       trapOk: {},
       blockStep: {},
       peeked: {},
       code: {},
-      imagine: {},
-      breaks: {},
       answerOpen: {}
     };
   }
@@ -530,28 +525,10 @@
       if (raw) {
         var data = JSON.parse(raw);
         if (data && typeof data === "object") {
-          if (tasks.some(function (t) { return t.id === data.taskId; })) state.taskId = data.taskId;
-          if (data.langMode === "en-peek" || data.langMode === "en" || data.langMode === "ja") {
-            state.langMode = data.langMode;
-          } else if (data.lang === "en" || data.lang === "ja") {
-            state.langMode = data.lang === "en" ? "en-peek" : "ja";
-          }
-          if (typeof data.freeUnlock === "boolean") state.freeUnlock = data.freeUnlock;
-          if (data.theme === "light" || data.theme === "dark") state.theme = data.theme;
-          if (data.solved && typeof data.solved === "object") state.solved = data.solved;
-          if (data.patternOk && typeof data.patternOk === "object") state.patternOk = data.patternOk;
-          if (data.trapOk && typeof data.trapOk === "object") state.trapOk = data.trapOk;
-          if (data.blockStep && typeof data.blockStep === "object") state.blockStep = data.blockStep;
-          if (data.peeked && typeof data.peeked === "object") state.peeked = data.peeked;
-          if (data.code && typeof data.code === "object") state.code = data.code;
-          if (data.imagine && typeof data.imagine === "object") state.imagine = data.imagine;
-          if (data.breaks && typeof data.breaks === "object") state.breaks = data.breaks;
-          if (data.answerOpen && typeof data.answerOpen === "object") state.answerOpen = data.answerOpen;
+          Object.keys(state).forEach(function (key) {
+            if (data[key] && typeof data[key] === "object") state[key] = data[key];
+          });
         }
-      }
-      var paramTask = new URLSearchParams(root.location.search).get("task");
-      if (paramTask && tasks.some(function (t) { return t.id === paramTask; })) {
-        state.taskId = paramTask;
       }
     } catch (e) {
       return emptyState();
@@ -565,14 +542,6 @@
     } catch (e) {
       /* The page still works for this visit if storage is blocked. */
     }
-  }
-
-  function taskById(id) {
-    var i;
-    for (i = 0; i < tasks.length; i += 1) {
-      if (tasks[i].id === id) return tasks[i];
-    }
-    return tasks[0];
   }
 
   function hashSeed(str) {
@@ -605,42 +574,6 @@
     return arr;
   }
 
-  function solvedSet(state, task) {
-    var list = state.solved[task.id];
-    if (!Array.isArray(list)) list = [];
-    var set = {};
-    list.forEach(function (id) { set[id] = true; });
-    return set;
-  }
-
-  function readingDone(state, task) {
-    var set = solvedSet(state, task);
-    return task.reading.every(function (q) { return set[q.id]; });
-  }
-
-  function patternDone(state, task) {
-    if (!task.codeImagine) return true;
-    return !!state.patternOk[task.id] && !!state.trapOk[task.id];
-  }
-
-  function blocksDone(state, task) {
-    if (!task.codeImagine || !task.codeImagine.blocks) return true;
-    return (state.blockStep[task.id] || 0) >= task.codeImagine.blocks.length;
-  }
-
-  function editorUnlocked(state, task) {
-    return !!state.freeUnlock || readingDone(state, task);
-  }
-
-  function nextQuestion(state, task) {
-    var set = solvedSet(state, task);
-    var i;
-    for (i = 0; i < task.reading.length; i += 1) {
-      if (!set[task.reading[i].id]) return task.reading[i];
-    }
-    return null;
-  }
-
   function el(tag, className, text) {
     var node = document.createElement(tag);
     if (className) node.className = className;
@@ -655,181 +588,194 @@
       pre.setAttribute("aria-label", labelText);
       pre.setAttribute("tabindex", "0");
     }
-    var code = el("code", null, codeText);
-    pre.appendChild(code);
+    pre.appendChild(el("code", null, codeText));
     return pre;
   }
 
-  function appendHighlightedEnglish(container, text, highlightSignals) {
-    if (!highlightSignals) {
-      container.appendChild(document.createTextNode(text));
-      return;
-    }
+  function appendHighlightedEnglish(container, text) {
     SIGNAL_REGEX.lastIndex = 0;
     var last = 0;
     var m;
     while ((m = SIGNAL_REGEX.exec(text)) !== null) {
-      if (m.index > last) {
-        container.appendChild(document.createTextNode(text.slice(last, m.index)));
-      }
-      var mark = el("mark", "sig-word", m[0]);
-      container.appendChild(mark);
+      if (m.index > last) container.appendChild(document.createTextNode(text.slice(last, m.index)));
+      container.appendChild(el("mark", "sig-word", m[0]));
       last = m.index + m[0].length;
     }
-    if (last < text.length) {
-      container.appendChild(document.createTextNode(text.slice(last)));
-    }
+    if (last < text.length) container.appendChild(document.createTextNode(text.slice(last)));
   }
 
-  function scrollInside(container, node) {
-    var c = container.getBoundingClientRect();
-    var r = node.getBoundingClientRect();
-    if (r.top < c.top) container.scrollTop -= c.top - r.top + 12;
-    else if (r.bottom > c.bottom) container.scrollTop += r.bottom - c.bottom + 12;
-  }
-
-  function markFocus(container, ids, kind) {
-    var nodes = container.querySelectorAll("[data-sid]");
-    Array.prototype.forEach.call(nodes, function (node) {
-      node.classList.remove("is-hit", "is-miss");
-      if (ids.indexOf(node.getAttribute("data-sid")) !== -1) {
-        node.classList.add(kind === "hit" ? "is-hit" : "is-miss");
-        scrollInside(container, node);
-      }
-    });
-  }
-
-  function buildCommentStarter(task) {
+  function buildCommentStarter(task, shell) {
     var lines = (task.codeImagine && task.codeImagine.blueprint) || task.skeleton || [];
-    if (!lines.length) return task.starter;
+    var base = shell || task.starter || "";
+    if (!lines.length) return base;
     var commentBlock = lines.map(function (l) { return "    " + l; }).join("\n");
-    var base = task.starter || "";
     var brace = base.indexOf("{");
-    if (brace === -1) {
-      return lines.join("\n") + "\n" + base;
-    }
+    if (brace === -1) return lines.join("\n") + "\n" + base;
     return base.slice(0, brace + 1) + "\n" + commentBlock + "\n    \n}\n";
   }
 
-  function boot() {
+  /* Reading questions as an exam sheet: the choice is only kept, and graded on submit. */
+  function renderExamQuestions(host, task, chosen, onPick) {
+    host.textContent = "";
+    chosen = chosen || {};
+    if (!(task.reading || []).length) {
+      host.appendChild(el("p", "muted", "この問題には選択問題がありません。"));
+      return;
+    }
+    task.reading.forEach(function (question, index) {
+      var field = el("fieldset", "reading-question");
+      field.appendChild(el("legend", null, (index + 1) + ". " + question.prompt));
+      question.choices.forEach(function (choice) {
+        var label = el("label", "reading-choice");
+        var input = document.createElement("input");
+        input.type = "radio";
+        input.name = "reading-" + index;
+        input.value = choice.id;
+        input.checked = chosen[question.id] === choice.id;
+        input.addEventListener("change", function () {
+          onPick(question.id, choice.id);
+        });
+        label.appendChild(input);
+        label.appendChild(el("span", null, choice.text));
+        field.appendChild(label);
+      });
+      host.appendChild(field);
+    });
+  }
+
+  /* opts: host, statement(), shell(task), getCode(task), setCode(task, code) -> boolean,
+     onProgress(), onFocus(). */
+  function createTrainer(opts) {
+    var host = opts.host;
     var state = loadState();
+    var task = null;
     var feedback = null;
     var patternFeedback = null;
     var trapFeedback = null;
     var blockFeedback = null;
     var shuffleSalt = 0;
-    var runView = null;
-    var debugSession = null;
-    document.documentElement.setAttribute("data-theme", state.theme);
-
-    var app = document.getElementById("app");
-    var taskPick = document.getElementById("taskPick");
-    var langModePick = document.getElementById("langModePick");
-    var unlockBtn = document.getElementById("unlockBtn");
-    var themeBtn = document.getElementById("themeBtn");
-    var modePick = document.getElementById("modePick");
+    var stepTimer = 0;
 
     function persist() {
       saveState(state);
     }
 
-    function peekMapFor(task) {
-      var m = state.peeked[task.id];
+    function progressed() {
+      persist();
+      if (opts.onProgress) opts.onProgress();
+    }
+
+    function solvedSet(t) {
+      var list = state.solved[t.id];
+      var set = {};
+      if (Array.isArray(list)) list.forEach(function (id) { set[id] = true; });
+      return set;
+    }
+
+    function readingDone(t) {
+      var set = solvedSet(t);
+      return (t.reading || []).every(function (q) { return set[q.id]; });
+    }
+
+    function patternDone(t) {
+      if (!t.codeImagine) return true;
+      return !!state.patternOk[t.id] && !!state.trapOk[t.id];
+    }
+
+    function blocksDone(t) {
+      if (!t.codeImagine || !t.codeImagine.blocks) return true;
+      return (state.blockStep[t.id] || 0) >= t.codeImagine.blocks.length;
+    }
+
+    function isDone(t) {
+      return readingDone(t) && patternDone(t) && blocksDone(t);
+    }
+
+    function nextQuestion(t) {
+      var set = solvedSet(t);
+      var i;
+      for (i = 0; i < t.reading.length; i += 1) {
+        if (!set[t.reading[i].id]) return t.reading[i];
+      }
+      return null;
+    }
+
+    function shellFor(t) {
+      return opts.shell ? opts.shell(t) : (t.starter || "");
+    }
+
+    function markFocus(ids, kind) {
+      var container = opts.statement && opts.statement();
+      if (!container) return;
+      if (opts.onFocus) opts.onFocus();
+      var first = null;
+      Array.prototype.forEach.call(container.querySelectorAll("[data-sid]"), function (node) {
+        node.classList.remove("is-hit", "is-miss");
+        if (ids.indexOf(node.getAttribute("data-sid")) !== -1) {
+          node.classList.add(kind === "hit" ? "is-hit" : "is-miss");
+          if (!first) first = node;
+        }
+      });
+      if (first && first.scrollIntoView) first.scrollIntoView({ block: "nearest" });
+    }
+
+    function peekMapFor(t) {
+      var m = state.peeked[t.id];
       return m && typeof m === "object" ? m : {};
     }
 
-    function renderChrome() {
-      var groups = [];
-      var byName = {};
-      tasks.forEach(function (task) {
-        var name = task.group || "練習";
-        if (!byName[name]) {
-          byName[name] = [];
-          groups.push(name);
-        }
-        byName[name].push(task);
+    function jaTextOf(t, id) {
+      var ja = t.text && t.text.ja;
+      var found = "";
+      if (!ja) return found;
+      (ja.sentences || []).concat(ja.assumptions || []).forEach(function (s) {
+        if (s && s.id === id) found = s.text;
       });
-      taskPick.textContent = "";
-      groups.forEach(function (name) {
-        var group = document.createElement("optgroup");
-        group.label = name;
-        byName[name].forEach(function (task) {
-          var option = document.createElement("option");
-          option.value = task.id;
-          var doneAll = readingDone(state, task) && patternDone(state, task) && blocksDone(state, task);
-          option.textContent = (doneAll ? "✓ " : "") + task.title;
-          if (task.id === state.taskId) option.selected = true;
-          group.appendChild(option);
-        });
-        taskPick.appendChild(group);
+      return found;
+    }
+
+    /* One statement line: signal words are dotted, and each line can show its translation. */
+    function fillSentence(node, t, item, isEn, allowPeek) {
+      node.textContent = "";
+      var text = typeof item === "string" ? item : item.text || "";
+      var span = el("span", null);
+      if (isEn) span.setAttribute("lang", "en");
+      if (isEn && allowPeek) appendHighlightedEnglish(span, text);
+      else span.textContent = text;
+      node.appendChild(span);
+      var ja = isEn && allowPeek && item.id ? jaTextOf(t, item.id) : "";
+      if (!ja) return;
+      var isOpen = !!peekMapFor(t)[item.id];
+      var btn = el("button", "peek-btn", isOpen ? "訳を隠す" : "訳");
+      btn.type = "button";
+      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      btn.setAttribute("aria-label", item.id + " の日本語訳を表示");
+      btn.addEventListener("click", function () {
+        var cur = peekMapFor(t);
+        var next = {};
+        Object.keys(cur).forEach(function (k) { next[k] = cur[k]; });
+        if (next[item.id]) delete next[item.id];
+        else next[item.id] = true;
+        state.peeked[t.id] = next;
+        persist();
+        fillSentence(node, t, item, isEn, allowPeek);
       });
-      var current = taskById(state.taskId);
-      if (!current.text.en && state.langMode !== "ja") {
-        state.langMode = "ja";
-      }
-      if (langModePick) {
-        langModePick.value = state.langMode;
-      }
-      if (unlockBtn) {
-        unlockBtn.textContent = state.freeUnlock ? "すぐ書く: ON" : "すぐ書く: OFF";
-        unlockBtn.classList.toggle("is-on", !!state.freeUnlock);
-      }
-      themeBtn.textContent = state.theme === "dark" ? "明るい画面" : "暗い画面";
-    }
-
-    function buildJaLookup(task) {
-      var map = {};
-      var ja = task.text.ja;
-      if (!ja) return map;
-      (ja.sentences || []).forEach(function (s) { map[s.id] = s.text; });
-      (ja.assumptions || []).forEach(function (a) { map[a.id] = a.text; });
-      return map;
-    }
-
-    function renderSentenceContent(holder, item, isEn, allowPeek, jaLookup, task) {
-      var textSpan = el("span", null);
-      if (isEn) {
-        textSpan.setAttribute("lang", "en");
-        appendHighlightedEnglish(textSpan, item.text, allowPeek);
-      } else {
-        textSpan.textContent = item.text;
-      }
-      holder.appendChild(textSpan);
-
-      if (isEn && allowPeek && jaLookup[item.id]) {
-        var pmap = peekMapFor(task);
-        var isOpen = !!pmap[item.id];
-        var btn = el("button", "peek-btn", isOpen ? "訳を隠す" : "訳");
-        btn.type = "button";
-        btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-        btn.setAttribute("aria-label", item.id + " の日本語訳を表示");
-        btn.addEventListener("click", function () {
-          var cur = peekMapFor(task);
-          var next = {};
-          Object.keys(cur).forEach(function (k) { next[k] = cur[k]; });
-          if (next[item.id]) delete next[item.id];
-          else next[item.id] = true;
-          state.peeked[task.id] = next;
-          persist();
-          render();
-        });
-        holder.appendChild(btn);
-        if (isOpen) {
-          var jaSpan = el("span", "ja-peek", jaLookup[item.id]);
-          jaSpan.setAttribute("lang", "ja");
-          holder.appendChild(jaSpan);
-        }
+      node.appendChild(btn);
+      if (isOpen) {
+        var jaSpan = el("span", "ja-peek", ja);
+        jaSpan.setAttribute("lang", "ja");
+        node.appendChild(jaSpan);
       }
     }
 
-    function renderGlossary() {
+    function glossaryNode() {
       var glossary = root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.glossary;
       if (!glossary || !glossary.length) return null;
       var details = document.createElement("details");
       details.className = "glossary-box";
-      details.appendChild(el("summary", null, "📖 コピー不要！Codility英語シグナル早見表（英語 → 意味 → Kotlinの型）"));
+      details.appendChild(el("summary", null, "Codility英語シグナル早見表（英語 → 意味 → Kotlinの型）"));
       var table = el("table", "glossary-table");
-      table.appendChild(el("caption", null, "試験中に頻出する英語表現と、そこから即座に連想するKotlin実装の対応表です。"));
+      table.appendChild(el("caption", null, "試験中に頻出する英語表現と、そこから連想するKotlin実装の対応表です。"));
       var thead = document.createElement("thead");
       var hr = document.createElement("tr");
       ["英語シグナル", "意味", "直結するKotlin構造"].forEach(function (label) {
@@ -854,129 +800,70 @@
       return details;
     }
 
-    function renderStatement(task) {
-      var isEn = state.langMode !== "ja" && !!task.text.en;
-      var allowPeek = state.langMode === "en-peek" && isEn;
-      var pack = isEn ? task.text.en : task.text.ja;
-      var jaLookup = buildJaLookup(task);
-
-      var pane = el("section", "statement");
-      pane.appendChild(el("p", "eyebrow", "Task description"));
-      var headingText = isEn && pack.title ? pack.title : task.title;
-      var h1 = el("h1", null, headingText);
-      if (isEn) h1.setAttribute("lang", "en");
-      pane.appendChild(h1);
-      pane.appendChild(el("p", "minutes", "目安 " + task.minutes + " 分 ｜ グループ: " + task.group + "（公式問題文の転載ではなく練習用の自作文です）"));
-
-      if (isEn) {
-        var bar = el("div", "peek-bar");
-        var peekCount = Object.keys(peekMapFor(task)).length;
-        bar.appendChild(el("span", "peek-stat", allowPeek
-          ? "英語直読トレ中：詰まった文だけ「訳」で確認（チラ見 " + peekCount + " 文）。点線語は解法シグナルです。"
-          : "本番想定モード：和訳ヒントなしで英語原文から直接要件とコードを連想します。"));
-        if (allowPeek && peekCount > 0) {
-          var clearPeek = el("button", "text-btn", "訳をすべて閉じる");
-          clearPeek.type = "button";
-          clearPeek.addEventListener("click", function () {
-            state.peeked[task.id] = {};
-            persist();
-            render();
-          });
-          bar.appendChild(clearPeek);
-        }
-        pane.appendChild(bar);
-      }
-
-      pack.sentences.forEach(function (sentence) {
-        var p = el("p", "sentence");
-        p.setAttribute("data-sid", sentence.id);
-        renderSentenceContent(p, sentence, isEn, allowPeek, jaLookup, task);
-        pane.appendChild(p);
-      });
-      pane.appendChild(el("h2", null, isEn ? "Function signature" : "関数"));
-      pane.appendChild(codePre("signature", task.signature, "関数の署名"));
-      pane.appendChild(el("h2", null, isEn ? "Example" : "例"));
-      pane.appendChild(codePre("example", pack.example, "入出力の例"));
-      pane.appendChild(el("h2", null, isEn ? "Assumptions" : "前提・制約"));
-      var list = el("ul", "assumptions");
-      pack.assumptions.forEach(function (item) {
-        var li = el("li", "sentence");
-        li.setAttribute("data-sid", item.id);
-        renderSentenceContent(li, item, isEn, allowPeek, jaLookup, task);
-        list.appendChild(li);
-      });
-      pane.appendChild(list);
-
-      var gl = renderGlossary();
-      if (gl) pane.appendChild(gl);
-      return pane;
-    }
-
-    function renderStepStrip(task) {
+    function renderStepStrip(t) {
       var strip = el("div", "step-strip");
-      var s1 = readingDone(state, task);
-      var s2 = patternDone(state, task);
-      var s3 = blocksDone(state, task);
-      var rows = [
+      var s1 = readingDone(t);
+      var s2 = patternDone(t);
+      var s3 = blocksDone(t);
+      [
         { label: "① 急所読解", done: s1, active: !s1 },
         { label: "② 型と罠特定", done: s2, active: s1 && !s2 },
         { label: "③ 骨格組立", done: s3, active: s1 && s2 && !s3 },
-        { label: "④ 実装・検証", done: false, active: (s1 && s2 && s3) || state.freeUnlock }
-      ];
-      rows.forEach(function (r) {
-        var pill = el("div", "step-pill" + (r.done ? " is-done" : (r.active ? " is-active" : "")), (r.done ? "✓ " : "") + r.label);
-        strip.appendChild(pill);
+        { label: "④ 実装・検証", done: false, active: s1 && s2 && s3 }
+      ].forEach(function (r) {
+        strip.appendChild(el("div", "step-pill" + (r.done ? " is-done" : (r.active ? " is-active" : "")), (r.done ? "✓ " : "") + r.label));
       });
       return strip;
     }
 
-    function renderReading(task) {
+    function feedbackNode(item) {
+      return el("p", item.ok ? "feedback is-ok" : "feedback is-bad", item.why);
+    }
+
+    function renderReading(t) {
       var card = el("section", "card");
-      var done = readingDone(state, task);
-      var set = solvedSet(state, task);
-      var solvedCount = task.reading.filter(function (q) { return set[q.id]; }).length;
-      card.appendChild(el("h2", null, "1. 問題文から4つの急所を拾う"));
-      card.appendChild(el("p", "lead", "翻訳ツールに頼らず、まず「返すもの・例の数・境界・条件」の4点だけを問題文から抜き出します。間違えると左の根拠文が赤く光ります。"));
+      var done = readingDone(t);
+      var set = solvedSet(t);
+      var solvedCount = t.reading.filter(function (q) { return set[q.id]; }).length;
+      card.appendChild(el("h2", null, "1. 問題文から急所を拾う"));
+      card.appendChild(el("p", "lead", "翻訳ツールに頼らず、「返すもの・例の数・境界・条件」を問題文から抜き出します。選ぶとすぐに採点し、根拠の文が問題文の中で色づきます。"));
       var slots = el("ol", "slots");
-      task.reading.forEach(function (q) {
-        var li = el("li", set[q.id] ? "is-done" : "", q.slot);
-        slots.appendChild(li);
+      t.reading.forEach(function (q) {
+        slots.appendChild(el("li", set[q.id] ? "is-done" : "", q.slot));
       });
       card.appendChild(slots);
-      card.appendChild(el("p", "progress", "読解 " + solvedCount + " / " + task.reading.length));
+      card.appendChild(el("p", "progress", "読解 " + solvedCount + " / " + t.reading.length));
 
       if (done) {
-        card.appendChild(el("p", "ok-note", "✓ 4つの急所をすべて把握できました！次は下のカードで「解法の型」を連想します。"));
-        var again = el("button", "text-btn", "読解4問をやり直す");
+        card.appendChild(el("p", "ok-note", "✓ 急所をすべて把握できました。次は「解法の型」を連想します。"));
+        var again = el("button", "text-btn", "読解問題をやり直す");
         again.type = "button";
         again.addEventListener("click", function () {
-          state.solved[task.id] = [];
+          state.solved[t.id] = [];
           feedback = null;
-          persist();
+          progressed();
           render();
         });
         card.appendChild(again);
         return card;
       }
 
-      var q = nextQuestion(state, task);
+      var q = nextQuestion(t);
       card.appendChild(el("p", "slot-label", "確認項目: " + q.slot));
       card.appendChild(el("p", "prompt", q.prompt));
       q.choices.forEach(function (choice) {
         var btn = el("button", "choice", choice.text);
         btn.type = "button";
         btn.addEventListener("click", function () {
-          var result = gradeReading(task, q.id, choice.id);
-          var statement = document.querySelector(".statement");
-          if (statement) markFocus(statement, result.focus, result.ok ? "hit" : "miss");
+          var result = gradeReading(t, q.id, choice.id);
+          markFocus(result.focus, result.ok ? "hit" : "miss");
           feedback = { ok: result.ok, why: result.why };
           if (result.ok) {
-            var list = Array.isArray(state.solved[task.id]) ? state.solved[task.id].slice() : [];
+            var list = Array.isArray(state.solved[t.id]) ? state.solved[t.id].slice() : [];
             if (list.indexOf(q.id) === -1) list.push(q.id);
-            state.solved[task.id] = list;
-            persist();
-            var choices = card.querySelectorAll(".choice");
-            Array.prototype.forEach.call(choices, function (choiceBtn) {
+            state.solved[t.id] = list;
+            progressed();
+            Array.prototype.forEach.call(card.querySelectorAll(".choice"), function (choiceBtn) {
               choiceBtn.disabled = true;
             });
             window.clearTimeout(stepTimer);
@@ -985,7 +872,9 @@
               render();
             }, 850);
           }
-          renderFeedback(card);
+          var old = card.querySelector(".feedback");
+          if (old) old.remove();
+          card.appendChild(feedbackNode(feedback));
         });
         card.appendChild(btn);
       });
@@ -993,51 +882,27 @@
       return card;
     }
 
-    function feedbackNode(item) {
-      return el("p", item.ok ? "feedback is-ok" : "feedback is-bad", item.why);
-    }
-
-    function renderFeedback(card) {
-      var old = card.querySelector(".feedback");
-      if (old) old.remove();
-      if (feedback) card.appendChild(feedbackNode(feedback));
-    }
-
-    function buildPatternChoices(task) {
-      var all = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.patterns) || {};
-      var ans = task.codeImagine.pattern;
-      var others = Object.keys(all).filter(function (k) { return k !== ans; });
-      var picked = seededShuffle(others, task.id + "-pat").slice(0, 3);
-      picked.push(ans);
-      return seededShuffle(picked, task.id + "-pat-order").map(function (k) {
+    function quizChoices(all, answer, seed) {
+      var others = Object.keys(all).filter(function (k) { return k !== answer; });
+      var picked = seededShuffle(others, seed).slice(0, 3);
+      picked.push(answer);
+      return seededShuffle(picked, seed + "-order").map(function (k) {
         return { id: k, text: all[k] };
       });
     }
 
-    function buildTrapChoices(task) {
-      var all = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.traps) || {};
-      var ans = task.codeImagine.trap;
-      var others = Object.keys(all).filter(function (k) { return k !== ans; });
-      var picked = seededShuffle(others, task.id + "-trap").slice(0, 3);
-      picked.push(ans);
-      return seededShuffle(picked, task.id + "-trap-order").map(function (k) {
-        return { id: k, text: all[k] };
-      });
-    }
-
-    function renderPatternBridge(task) {
-      var ci = task.codeImagine;
+    function renderPatternBridge(t) {
+      var ci = t.codeImagine;
       if (!ci) return null;
       var card = el("section", "card");
       card.appendChild(el("h2", null, "2. 問題文のシグナルから「解法の型」と「罠」を連想する"));
-      card.appendChild(el("p", "lead", "いきなり書き始めず、問題文のキーワードと制約 N・値域から「どのアルゴリズムを使うか」「Long や境界の罠はどこか」を頭の中で即断します。"));
+      card.appendChild(el("p", "lead", "書き始める前に、問題文のキーワードと制約から「どのアルゴリズムを使うか」「Long や境界の罠はどこか」を決めます。"));
 
-      var patOk = !!state.patternOk[task.id];
-      var trpOk = !!state.trapOk[task.id];
       var patMap = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.patterns) || {};
       var trpMap = (root.CODE_IMAGINE_DATA && root.CODE_IMAGINE_DATA.traps) || {};
+      var patOk = !!state.patternOk[t.id];
+      var trpOk = !!state.trapOk[t.id];
 
-      /* Q1: Algorithm Pattern */
       card.appendChild(el("p", "prompt", "Q1. この問題文から真っ先に思い浮かべる Kotlin の型は？"));
       if (patOk) {
         var box1 = el("div", "signal-box");
@@ -1045,26 +910,24 @@
         box1.appendChild(el("p", null, "着眼シグナル: " + ci.signal));
         card.appendChild(box1);
       } else {
-        buildPatternChoices(task).forEach(function (ch) {
+        quizChoices(patMap, ci.pattern, t.id + "-pat").forEach(function (ch) {
           var b = el("button", "choice", ch.text);
           b.type = "button";
           b.addEventListener("click", function () {
             if (ch.id === ci.pattern) {
-              state.patternOk[task.id] = true;
+              state.patternOk[t.id] = true;
               patternFeedback = null;
-              persist();
-              render();
+              progressed();
             } else {
               patternFeedback = "「" + ch.text + "」だと制約や問題構造に合いません。問題文の連続性・値域・求める値（最小化/組数/状態遷移）を見直してみましょう。";
-              render();
             }
+            render();
           });
           card.appendChild(b);
         });
         if (patternFeedback) card.appendChild(el("p", "feedback is-bad", patternFeedback));
       }
 
-      /* Q2: Overflow / Boundary Trap */
       card.appendChild(el("p", "prompt", "Q2. 実装前に必ず警戒すべき「型（Int/Long）・境界・ライフサイクル」の急所は？"));
       if (trpOk) {
         var box2 = el("div", "signal-box");
@@ -1072,19 +935,18 @@
         box2.appendChild(el("p", null, "理由: " + ci.trapWhy));
         card.appendChild(box2);
       } else {
-        buildTrapChoices(task).forEach(function (ch) {
+        quizChoices(trpMap, ci.trap, t.id + "-trap").forEach(function (ch) {
           var b = el("button", "choice", ch.text);
           b.type = "button";
           b.addEventListener("click", function () {
             if (ch.id === ci.trap) {
-              state.trapOk[task.id] = true;
+              state.trapOk[t.id] = true;
               trapFeedback = null;
-              persist();
-              render();
+              progressed();
             } else {
               trapFeedback = "前提（Assumptions）の最大値や区間端・例外条件をもう一度チェックしてみましょう。";
-              render();
             }
+            render();
           });
           card.appendChild(b);
         });
@@ -1095,11 +957,11 @@
         var resetPat = el("button", "text-btn", "型・罠クイズをやり直す");
         resetPat.type = "button";
         resetPat.addEventListener("click", function () {
-          delete state.patternOk[task.id];
-          delete state.trapOk[task.id];
+          delete state.patternOk[t.id];
+          delete state.trapOk[t.id];
           patternFeedback = null;
           trapFeedback = null;
-          persist();
+          progressed();
           render();
         });
         card.appendChild(resetPat);
@@ -1107,17 +969,23 @@
       return card;
     }
 
-    function renderSkeletonBuilder(task) {
-      var ci = task.codeImagine;
+    /* Puts code into the page's editor. The page may refuse, for example while it is running. */
+    function putInEditor(t, target, question) {
+      var cur = opts.getCode(t);
+      if (cur !== shellFor(t) && cur !== target && cur.trim() !== "" && !window.confirm(question)) return;
+      opts.setCode(t, target);
+    }
+
+    function renderSkeletonBuilder(t) {
+      var ci = t.codeImagine;
       if (!ci || !ci.blocks || !ci.blocks.length) return null;
       var card = el("section", "card");
       var blocks = ci.blocks;
-      var step = state.blockStep[task.id] || 0;
-      if (step > blocks.length) step = blocks.length;
-      var isDone = step >= blocks.length;
+      var step = Math.min(state.blockStep[t.id] || 0, blocks.length);
+      var done = step >= blocks.length;
 
-      card.appendChild(el("h2", null, "3. 頭の中で Kotlin の「外枠ブロック」を順番に組み立てる"));
-      card.appendChild(el("p", "lead", "白紙のエディタで手が止まらないよう、実装を " + blocks.length + " 個の部品（ガード節・変数 → ループ外枠 → 更新判定 → return）に分けて上から順にタップして並べます。"));
+      card.appendChild(el("h2", null, "3. Kotlin の「外枠ブロック」を順番に組み立てる"));
+      card.appendChild(el("p", "lead", "白紙のエディタで手が止まらないよう、実装を " + blocks.length + " 個の部品に分け、上から書く順にタップして並べます。"));
 
       if (step > 0) {
         var assembled = el("div", "assembled-box");
@@ -1131,261 +999,143 @@
         card.appendChild(assembled);
       }
 
-      if (!isDone) {
-        var remainingIdx = [];
+      function restart() {
+        state.blockStep[t.id] = 0;
+        shuffleSalt += 1;
+        blockFeedback = null;
+        progressed();
+        render();
+      }
+
+      if (!done) {
+        var remaining = [];
         var k;
-        for (k = step; k < blocks.length; k += 1) remainingIdx.push(k);
-        var order = seededShuffle(remainingIdx, task.id + "-blk-" + shuffleSalt);
+        for (k = step; k < blocks.length; k += 1) remaining.push(k);
         var pool = el("div", "block-pool");
-        order.forEach(function (idx) {
+        seededShuffle(remaining, t.id + "-blk-" + shuffleSalt).forEach(function (idx) {
           var btn = el("button", "block-choice");
           btn.type = "button";
           btn.appendChild(codePre("block-code", blocks[idx].code));
           btn.addEventListener("click", function () {
             if (idx === step) {
-              state.blockStep[task.id] = step + 1;
+              state.blockStep[t.id] = step + 1;
               blockFeedback = null;
-              persist();
-              render();
+              progressed();
             } else {
               blockFeedback = "その処理の前に置くブロックがあります（ヒント: 次は「" + blocks[step].label + "」です）。";
-              render();
             }
+            render();
           });
           pool.appendChild(btn);
         });
         card.appendChild(pool);
-
         if (blockFeedback) card.appendChild(el("p", "feedback is-bad", blockFeedback));
 
         var bar = el("div", "run-bar");
         var hintBtn = el("button", "run-btn", "1つヒントを進める");
         hintBtn.type = "button";
         hintBtn.addEventListener("click", function () {
-          state.blockStep[task.id] = step + 1;
+          state.blockStep[t.id] = step + 1;
           blockFeedback = null;
-          persist();
+          progressed();
           render();
         });
         bar.appendChild(hintBtn);
         if (step > 0) {
           var resetBlk = el("button", "text-btn", "最初から並べ直す");
           resetBlk.type = "button";
-          resetBlk.addEventListener("click", function () {
-            state.blockStep[task.id] = 0;
-            shuffleSalt += 1;
-            blockFeedback = null;
-            persist();
-            render();
-          });
+          resetBlk.addEventListener("click", restart);
           bar.appendChild(resetBlk);
         }
         card.appendChild(bar);
       } else {
-        card.appendChild(el("p", "ok-note", "✓ コード全体の骨格が頭の中で完成しました！本番では以下の3行コメントを最初に打ってから中身を埋めると迷いません。"));
+        card.appendChild(el("p", "ok-note", "✓ コード全体の骨格が組み上がりました。本番では下のコメント外枠を最初に打ってから中身を埋めます。"));
         var redo = el("button", "text-btn", "骨格ブロックをもう一度シャッフルして練習する");
         redo.type = "button";
-        redo.addEventListener("click", function () {
-          state.blockStep[task.id] = 0;
-          shuffleSalt += 1;
-          blockFeedback = null;
-          persist();
-          render();
-        });
+        redo.addEventListener("click", restart);
         card.appendChild(redo);
       }
 
-      /* Comment Blueprint Disclosure & 1-click Insert */
       var bpDetails = document.createElement("details");
       bpDetails.className = "blueprint-box";
-      bpDetails.open = isDone;
-      bpDetails.appendChild(el("summary", null, "📝 試験開始60秒でエディタに打つ「コメント外枠（// 設計メモ）」を見る"));
-      bpDetails.appendChild(codePre("skeleton", buildCommentStarter(task), "コメント外枠付きの関数テンプレート"));
-      var bpBar = el("div", "run-bar");
-      var insertBp = el("button", "run-btn", "このコメント外枠だけエディタに入れる");
-      insertBp.type = "button";
-      insertBp.addEventListener("click", function () {
-        var target = buildCommentStarter(task);
-        var cur = currentCode(task);
-        if (cur !== task.starter && cur !== target &&
-            !window.confirm("現在のエディタ内容を、コメント外枠だけの状態に置き換えますか？")) return;
-        state.code[task.id] = target;
-        state.freeUnlock = true;
-        debugSession = null;
-        runView = null;
-        persist();
-        render();
-        var ed = document.querySelector("textarea.code");
-        if (ed) ed.focus();
-      });
-      bpBar.appendChild(insertBp);
-      bpDetails.appendChild(bpBar);
+      bpDetails.open = done;
+      bpDetails.appendChild(el("summary", null, "試験開始60秒でエディタに打つ「コメント外枠（// 設計メモ）」を見る"));
+      bpDetails.appendChild(codePre("skeleton", buildCommentStarter(t, shellFor(t)), "コメント外枠付きの関数テンプレート"));
       card.appendChild(bpDetails);
-
       return card;
     }
 
-    function currentCode(task) {
-      return Object.prototype.hasOwnProperty.call(state.code, task.id) ? state.code[task.id] : task.starter;
-    }
-
-    function breakList(task) {
-      var list = state.breaks[task.id];
-      return Array.isArray(list) ? list : [];
-    }
-
-    function breakMap(task) {
-      var map = {};
-      breakList(task).forEach(function (n) { map[n] = true; });
-      return map;
-    }
-
-    function renderEditor(task) {
+    function renderWrite(t) {
       var card = el("section", "card");
-      var unlocked = editorUnlocked(state, task);
-      var now = runView && runView.paused ? runView.paused.line : 0;
-      card.appendChild(el("h2", null, "4. 外枠から手で書いて、止めて、見る"));
-      card.appendChild(el("p", "lead", unlocked
-        ? "連想した骨格に沿って自分の手で打ちます。行番号を押すとブレークポイントになり、1行ずつ変数の動きを追えます（ブラウザ内簡易Kotlin実行機のため class 課題は実行対象外です）。"
-        : "上の「1. 急所読解（4問）」を終えるか、右上の「すぐ書く: ON」を押すとエディタに入力できます。"));
-      var wrap = el("div", "editor");
-      var gutter = el("div", "gutter");
-      var area = document.createElement("textarea");
-      area.className = "code";
-      area.spellcheck = false;
-      area.setAttribute("aria-label", "Kotlin のエディタ");
-      area.value = currentCode(task);
-      area.disabled = !unlocked;
-      function syncGutter() {
-        var n = Math.max(1, area.value.split("\n").length);
-        var marks = breakMap(task);
-        gutter.textContent = "";
-        var i;
-        for (i = 1; i <= n; i += 1) {
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "line-no" + (marks[i] ? " is-break" : "") + (i === now ? " is-now" : "");
-          btn.textContent = String(i);
-          btn.disabled = !unlocked;
-          btn.setAttribute("aria-label", i + "行で止める");
-          (function (line) {
-            btn.addEventListener("click", function () {
-              var list = breakList(task).slice();
-              var at = list.indexOf(line);
-              if (at === -1) list.push(line);
-              else list.splice(at, 1);
-              state.breaks[task.id] = list;
-              persist();
-              syncGutter();
-            });
-          })(i);
-          gutter.appendChild(btn);
-        }
-        gutter.scrollTop = area.scrollTop;
-      }
-      area.addEventListener("input", function () {
-        state.code[task.id] = area.value;
-        persist();
-        syncGutter();
-      });
-      area.addEventListener("scroll", function () {
-        gutter.scrollTop = area.scrollTop;
-      });
-      area.addEventListener("keydown", function (event) {
-        if (event.key !== "Tab" || area.disabled) return;
-        event.preventDefault();
-        var start = area.selectionStart;
-        var end = area.selectionEnd;
-        area.value = area.value.slice(0, start) + "    " + area.value.slice(end);
-        area.selectionStart = start + 4;
-        area.selectionEnd = start + 4;
-        state.code[task.id] = area.value;
-        persist();
-        syncGutter();
-      });
-      wrap.appendChild(gutter);
-      wrap.appendChild(area);
-      card.appendChild(wrap);
-      syncGutter();
-
+      card.appendChild(el("h2", null, "4. 下のエディタで外枠から手で書いて、動かす"));
+      card.appendChild(el("p", "lead", "連想した骨格に沿って、下の Solution に自分の手で打ちます。「Run code」でサンプルを実行でき、行番号を押すとその行で止めて変数を見られます。"));
       var bar = el("div", "run-bar");
-      var putBlueprint = el("button", "text-btn", "コメント外枠(//)を入れる");
+      var putBlueprint = el("button", "run-btn", "コメント外枠(//)をエディタに入れる");
       putBlueprint.type = "button";
-      putBlueprint.disabled = !unlocked;
       putBlueprint.addEventListener("click", function () {
-        var target = buildCommentStarter(task);
-        var cur = currentCode(task);
-        if (cur !== task.starter && cur !== target &&
-            !window.confirm("エディタをコメント外枠だけの状態にしますか？")) return;
-        state.code[task.id] = target;
-        debugSession = null;
-        runView = null;
-        persist();
-        render();
+        putInEditor(t, buildCommentStarter(t, shellFor(t)), "いまエディタにあるコードを、コメント外枠だけの状態に置き換えますか？");
       });
       var reset = el("button", "text-btn", "署名だけに戻す");
       reset.type = "button";
-      reset.disabled = !unlocked;
       reset.addEventListener("click", function () {
         if (!window.confirm("この問題のエディタを、署名だけの状態に戻します。")) return;
-        state.code[task.id] = task.starter;
-        debugSession = null;
-        runView = null;
-        persist();
-        render();
+        opts.setCode(t, shellFor(t));
       });
       bar.appendChild(putBlueprint);
       bar.appendChild(reset);
       card.appendChild(bar);
+      if (!t.runnable) {
+        card.appendChild(el("p", "lead", "この問題は class（ViewModel / Interceptor など）を使うため、ブラウザ内の実行機では動きません。骨格の組み立てと手打ちの練習に使ってください。"));
+      }
+      if (t.portalPath) {
+        var link = document.createElement("a");
+        link.className = "portal-link";
+        link.href = "./index.html#" + encodeURI(t.portalPath);
+        link.textContent = "ポータルの解説ページを開く";
+        card.appendChild(link);
+      }
       return card;
     }
 
-    function renderAnswer(task) {
+    function renderAnswer(t) {
       var card = el("section", "card answer-card");
       card.appendChild(el("h2", null, "模範解答コードと考え方"));
-      if (!task.answer) {
+      if (!t.answer) {
         card.appendChild(el("p", "lead", "この問題の解答コードは、まだ用意していません。"));
         return card;
       }
-      var unlocked = editorUnlocked(state, task);
-      card.appendChild(el("p", "lead", "どうしても手が止まったときに開き、読んだら閉じて自分の手で外枠から打ち直すと本番で再現できます。"));
+      card.appendChild(el("p", "lead", "どうしても手が止まったときに開き、読んだら閉じて、自分の手で外枠から打ち直します。"));
       var box = document.createElement("details");
       box.className = "answer";
-      box.open = !!state.answerOpen[task.id];
+      box.open = !!state.answerOpen[t.id];
       box.addEventListener("toggle", function () {
-        state.answerOpen[task.id] = box.open;
+        state.answerOpen[t.id] = box.open;
         persist();
       });
       box.appendChild(el("summary", null, "解答コードと考え方を開く"));
       box.appendChild(el("h3", null, "考え方"));
       var notes = el("ul", "answer-notes");
-      (task.answer.notes || []).forEach(function (line) {
+      (t.answer.notes || []).forEach(function (line) {
         notes.appendChild(el("li", null, line));
       });
       box.appendChild(notes);
       box.appendChild(el("h3", null, "コード"));
-      box.appendChild(codePre("skeleton answer-code", task.answer.code, "模範解答のKotlinコード"));
+      box.appendChild(codePre("skeleton answer-code", t.answer.code, "模範解答のKotlinコード"));
       var bar = el("div", "run-bar");
       var put = el("button", "run-btn", "エディタに入れる");
       put.type = "button";
-      put.disabled = !unlocked;
       put.addEventListener("click", function () {
-        var now = currentCode(task);
-        if (now !== task.starter && now !== task.answer.code &&
-            !window.confirm("いまエディタにあるコードを、解答コードで置き換えます。")) return;
-        state.code[task.id] = task.answer.code;
-        debugSession = null;
-        runView = null;
-        persist();
-        render();
+        putInEditor(t, t.answer.code, "いまエディタにあるコードを、解答コードで置き換えます。");
       });
       var copy = el("button", "run-btn", "コピー");
       copy.type = "button";
       copy.addEventListener("click", function () {
-        var text = task.answer.code;
-        function said(msg) { copy.textContent = msg; window.setTimeout(function () { copy.textContent = "コピー"; }, 1500); }
+        function said(msg) {
+          copy.textContent = msg;
+          window.setTimeout(function () { copy.textContent = "コピー"; }, 1500);
+        }
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function () { said("コピーしました"); }, function () { said("コピーできません"); });
+          navigator.clipboard.writeText(t.answer.code).then(function () { said("コピーしました"); }, function () { said("コピーできません"); });
         } else {
           said("コピーできません");
         }
@@ -1393,255 +1143,49 @@
       bar.appendChild(put);
       bar.appendChild(copy);
       box.appendChild(bar);
-      if (!unlocked) box.appendChild(el("p", "lead", "エディタへの反映は読解4問の後（または「すぐ書く: ON」）で使えます。"));
-      if (!task.runnable) box.appendChild(el("p", "lead", "この問題は class 設計課題のためブラウザ内実行機では動きません。骨格連想と手打ち練習に使ってください。"));
       card.appendChild(box);
-      return card;
-    }
-
-    function shown(value) {
-      if (typeof value === "string") return JSON.stringify(value);
-      if (Array.isArray(value)) return JSON.stringify(value);
-      return String(value);
-    }
-
-    function takeResult(result, queue) {
-      var rows = runView && runView.rows ? runView.rows.slice() : [];
-      rows = rows.concat(result.results || []);
-      if (result.paused) {
-        debugSession = result;
-        debugSession.queue = queue;
-        runView = { error: "", rows: rows, paused: result.paused, output: result.paused.output || [] };
-        return;
-      }
-      debugSession = null;
-      runView = { error: "", rows: rows, paused: null, output: (result.ctx && result.ctx.output) || [] };
-    }
-
-    function failRun(error) {
-      debugSession = null;
-      runView = {
-        error: (error && error.line ? error.line + "行: " : "") + (error && error.message ? error.message : "実行できませんでした"),
-        rows: runView && runView.rows ? runView.rows : [],
-        paused: null,
-        output: []
-      };
-    }
-
-    function runQueue(queue, mode) {
-      var task = taskById(state.taskId);
-      if (!queue.length) return;
-      try {
-        var result = root.Kotlite.runTests(currentCode(task), queue, {
-          breakpoints: breakMap(task),
-          mode: mode === "step" ? "step" : "run"
-        });
-        var rest = result.paused ? queue.slice((result.results || []).length + 1) : [];
-        takeResult(result, rest);
-      } catch (error) {
-        failRun(error);
-      }
-    }
-
-    function resumeRun(mode) {
-      var task = taskById(state.taskId);
-      if (!debugSession) return;
-      var queue = debugSession.queue || [];
-      try {
-        var result = root.Kotlite.resume(debugSession, mode === "step" ? "step" : "continue", breakMap(task));
-        if (result.paused) {
-          debugSession = result;
-          debugSession.queue = queue;
-          runView.paused = result.paused;
-          runView.output = result.paused.output || [];
-          return;
-        }
-        var row = result.results[result.results.length - 1];
-        runView.rows = (runView.rows || []).concat([row]);
-        runView.paused = null;
-        runView.output = [];
-        debugSession = null;
-        if (queue.length) runQueue(queue, mode === "step" ? "step" : "run");
-      } catch (error) {
-        failRun(error);
-      }
-    }
-
-    function renderRun(task) {
-      var card = el("section", "card");
-      var unlocked = editorUnlocked(state, task);
-      card.appendChild(el("h2", null, "5. サンプルを実行して境界を確かめる"));
-      if (!task.runnable) {
-        card.appendChild(el("p", "lead", "この問題は class（ViewModel / Interceptor など）を使うためブラウザ内実行機では実行できません。上の骨格ブロック組立で構造を固めたら、ポータルの解説・JUnitテストも確認してください。"));
-        var blocked = document.createElement("a");
-        blocked.className = "portal-link";
-        blocked.href = "./index.html#" + encodeURI(task.portalPath);
-        blocked.textContent = "ポータルの該当解説ページを開く";
-        card.appendChild(blocked);
-        return card;
-      }
-      card.appendChild(el("p", "lead", "サンプル入力で fun solution を動かします。行番号で止めた時点のローカル変数も確認できます。"));
-      if (!unlocked) {
-        card.appendChild(el("p", "lead", "読解4問の後（または「すぐ書く: ON」）で実行ボタンが使えます。"));
-        return card;
-      }
-      if (!root.Kotlite) {
-        card.appendChild(el("p", "feedback is-bad", "実行プログラムが読み込めていません。"));
-        return card;
-      }
-      var bar = el("div", "run-bar");
-      var run = el("button", "run-btn", "サンプルを実行");
-      run.type = "button";
-      var step = el("button", "run-btn", "1行進む");
-      step.type = "button";
-      var cont = el("button", "run-btn", "次の停止まで");
-      cont.type = "button";
-      cont.disabled = !debugSession;
-      run.addEventListener("click", function () {
-        runView = { error: "", rows: [], paused: null, output: [] };
-        debugSession = null;
-        runQueue(task.tests || [], "run");
-        render();
-      });
-      step.addEventListener("click", function () {
-        if (!debugSession) {
-          runView = { error: "", rows: [], paused: null, output: [] };
-          runQueue(task.tests || [], "step");
-        } else {
-          resumeRun("step");
-        }
-        render();
-      });
-      cont.addEventListener("click", function () {
-        resumeRun("continue");
-        render();
-      });
-      bar.appendChild(run);
-      bar.appendChild(step);
-      bar.appendChild(cont);
-      card.appendChild(bar);
-      if (runView && runView.error) card.appendChild(el("p", "feedback is-bad", runView.error));
-      if (runView && runView.paused) {
-        var pause = el("p", "feedback is-ok", runView.paused.line + "行で止まっています。テスト「" + (runView.paused.test || "") + "」。");
-        card.appendChild(pause);
-        var vars = el("ul", "vars");
-        (runView.paused.vars || []).forEach(function (row) {
-          vars.appendChild(el("li", null, row.name + " = " + row.value));
-        });
-        if (!(runView.paused.vars || []).length) vars.appendChild(el("li", null, "（この行の手前では、ローカル変数はまだありません）"));
-        card.appendChild(vars);
-      }
-      if (runView && runView.output && runView.output.length) {
-        card.appendChild(codePre("example", runView.output.join("\n"), "標準出力"));
-      }
-      if (runView && runView.rows && runView.rows.length) {
-        var box = el("div", "report");
-        runView.rows.forEach(function (row) {
-          var line = el("p", row.ok ? "report-line is-ok" : "report-line is-bad");
-          if (row.ok) line.textContent = "✓ " + row.name + " … 返り値 " + shown(row.actual) + " で合っています。";
-          else line.textContent = "✗ " + row.name + " … 結果 " + shown(row.actual) + "（期待値 " + shown(row.expected) + "） " + (row.message || "");
-          box.appendChild(line);
-        });
-        card.appendChild(box);
-        var allOk = task.tests && task.tests.length && runView.rows.length === task.tests.length && runView.rows.every(function (row) { return row.ok; });
-        if (allOk && !runView.paused) {
-          card.appendChild(el("p", "ok-note", "🎉 全サンプル合格です！問題文から直接コードを組み立てられました。"));
-          var link = document.createElement("a");
-          link.className = "portal-link";
-          link.href = "./index.html#" + encodeURI(task.portalPath);
-          link.textContent = "ポータルの解説・面接深掘りページを開く";
-          card.appendChild(link);
-        }
-      }
       return card;
     }
 
     function render() {
       window.clearTimeout(stepTimer);
-      var task = taskById(state.taskId);
-      renderChrome();
-      app.textContent = "";
-      var statement = renderStatement(task);
-      var work = el("div", "work");
-      work.appendChild(renderStepStrip(task));
-      work.appendChild(renderReading(task));
+      host.textContent = "";
+      if (!task) return;
+      host.appendChild(renderStepStrip(task));
+      host.appendChild(renderReading(task));
       var patternCard = renderPatternBridge(task);
-      if (patternCard) work.appendChild(patternCard);
+      if (patternCard) host.appendChild(patternCard);
       var skelCard = renderSkeletonBuilder(task);
-      if (skelCard) work.appendChild(skelCard);
-      work.appendChild(renderEditor(task));
-      work.appendChild(renderRun(task));
-      work.appendChild(renderAnswer(task));
-      app.appendChild(statement);
-      app.appendChild(work);
-      if (feedback) markFocus(statement, focusIdsForCurrent(task), feedback.ok ? "hit" : "miss");
+      if (skelCard) host.appendChild(skelCard);
+      host.appendChild(renderWrite(task));
+      host.appendChild(renderAnswer(task));
     }
 
-    function focusIdsForCurrent(task) {
-      var q = nextQuestion(state, task);
-      if (!q) return [];
-      var result = gradeReading(task, q.id, q.answer);
-      if (feedback && feedback.ok) {
-        var set = solvedSet(state, task);
-        var last = null;
-        task.reading.forEach(function (item) {
-          if (set[item.id]) last = item;
-        });
-        return last ? last.focus : result.focus;
-      }
-      return q.focus;
-    }
-
-    taskPick.addEventListener("change", function () {
-      feedback = null;
-      patternFeedback = null;
-      trapFeedback = null;
-      blockFeedback = null;
-      runView = null;
-      debugSession = null;
-      state.taskId = taskPick.value;
-      persist();
-      render();
-    });
-    if (modePick) {
-      modePick.value = "imagine";
-      modePick.addEventListener("change", function () {
-        if (modePick.value === "rehearsal") {
-          root.location.href = "./timed-auto.html?mode=rehearsal";
-        } else if (modePick.value === "timed") {
-          root.location.href = "./timed-auto.html?task=" + encodeURIComponent(state.taskId || "");
+    return {
+      /* Shows the steps for one task. Changing the task drops the messages of the last one. */
+      show: function (next) {
+        if (!task || !next || task.id !== next.id) {
+          feedback = null;
+          patternFeedback = null;
+          trapFeedback = null;
+          blockFeedback = null;
         }
-      });
-      // Coming back with the browser's back button must show this page's own mode again.
-      root.addEventListener("pageshow", function () { modePick.value = "imagine"; });
-    }
-    if (langModePick) {
-      langModePick.addEventListener("change", function () {
-        state.langMode = langModePick.value;
-        persist();
+        task = next || null;
         render();
-      });
-    }
-    if (unlockBtn) {
-      unlockBtn.addEventListener("click", function () {
-        state.freeUnlock = !state.freeUnlock;
-        persist();
-        render();
-      });
-    }
-    themeBtn.addEventListener("click", function () {
-      state.theme = state.theme === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", state.theme);
-      persist();
-      render();
-    });
-
-    render();
+      },
+      clear: function () {
+        window.clearTimeout(stepTimer);
+        task = null;
+        host.textContent = "";
+      },
+      isDone: isDone,
+      fillSentence: fillSentence,
+      glossaryNode: glossaryNode,
+      /* Code typed on the old separate page, so that it is not lost. */
+      oldCodes: function () { return state.code || {}; }
+    };
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
-  }
+  api.renderExamQuestions = renderExamQuestions;
+  api.createTrainer = createTrainer;
 })(typeof globalThis !== "undefined" ? globalThis : this);

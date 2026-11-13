@@ -3,22 +3,26 @@
 
   var allTasks = (root.ReadingLab && root.ReadingLab.tasks) || [];
   var tasks = allTasks;
-  var rehearsal = false;
+  /* One page, three modes: "imagine" (reading and code imagination), "rehearsal"
+     (a five-task paper) and "timed" (any task against the clock). */
+  var MODE_TITLES = { imagine: "コード連想トレ", rehearsal: "本番前試験練習", timed: "制限時間で解く" };
+  var mode = "timed";
   try {
-    rehearsal = new URLSearchParams(root.location.search).get("mode") === "rehearsal";
+    var askedMode = new URLSearchParams(root.location.search).get("mode");
+    if (askedMode === "rehearsal" || askedMode === "imagine") mode = askedMode;
   } catch (error) {
-    rehearsal = false;
+    mode = "timed";
   }
-  var examPatterns = rehearsal && root.EXAM_PATTERNS ? root.EXAM_PATTERNS : [];
+  var rehearsal = false;
+  var imagine = false;
+  var examPatterns = [];
   var patternIndex = 0;
   var patternLocked = false;
   var PATTERN_STORE = "timed-rehearsal-pattern-v1";
-  var LANG_STORE = rehearsal ? "timed-rehearsal-lang-v1" : "timed-practice-lang-v1";
+  var LANG_STORE = "";
   var statementLang = "en";
-  try {
-    var savedLang = sessionStorage.getItem(LANG_STORE);
-    if (savedLang === "ja" || savedLang === "en") statementLang = savedLang;
-  } catch (error) { /* English stays the default. */ }
+  /* Only in the imagine mode: each English line can show its translation. */
+  var peekOn = false;
 
   function taskListFor(index) {
     var pattern = examPatterns[index];
@@ -33,19 +37,37 @@
     return selected;
   }
 
-  if (rehearsal && examPatterns.length) {
+  /* Sets everything that depends on the mode, except the saved answers (loadDraft). */
+  function loadModeBasics() {
+    rehearsal = mode === "rehearsal";
+    imagine = mode === "imagine";
+    examPatterns = rehearsal && root.EXAM_PATTERNS ? root.EXAM_PATTERNS : [];
+    LANG_STORE = "timed-" + (mode === "timed" ? "practice" : mode) + "-lang-v1";
+    statementLang = "en";
+    peekOn = imagine;
     try {
-      var savedPattern = sessionStorage.getItem(PATTERN_STORE);
-      var found = -1;
-      var p;
-      for (p = 0; p < examPatterns.length; p += 1) {
-        if (examPatterns[p].id === savedPattern) found = p;
+      var savedLang = sessionStorage.getItem(LANG_STORE);
+      if (savedLang === "ja" || savedLang === "en" || (imagine && savedLang === "en-peek")) {
+        statementLang = savedLang === "ja" ? "ja" : "en";
+        peekOn = savedLang === "en-peek";
       }
-      if (found >= 0) patternIndex = found;
-    } catch (error) { /* The first paper stays selected. */ }
-    tasks = taskListFor(patternIndex);
-    document.title = "本番前試験練習";
+    } catch (error) { /* English stays the default. */ }
+    tasks = allTasks;
+    patternIndex = 0;
+    patternLocked = false;
+    if (rehearsal && examPatterns.length) {
+      try {
+        var savedPattern = sessionStorage.getItem(PATTERN_STORE);
+        var p;
+        for (p = 0; p < examPatterns.length; p += 1) {
+          if (examPatterns[p].id === savedPattern) patternIndex = p;
+        }
+      } catch (error) { /* The first paper stays selected. */ }
+      tasks = taskListFor(patternIndex);
+    }
+    document.title = MODE_TITLES[mode];
   }
+  loadModeBasics();
   var answers = root.LAB_ANSWERS || {};
   var pick = document.getElementById("taskPick");
   var statement = document.getElementById("statement");
@@ -122,17 +144,68 @@
   var submitStatus = document.getElementById("submitStatus");
   var submitStatusBottom = document.getElementById("submitStatusBottom");
   var readingQuestions = document.getElementById("readingQuestions");
-  var DRAFT_KEY = rehearsal ? "timed-rehearsal-reading-draft-v1" : "timed-practice-reading-draft-v1";
+  var DRAFT_KEY = "";
   var REPORT_KEY = "timed-auto-report-v1";
-  var AUTO_REPORT_KEY = rehearsal ? "timed-rehearsal-draft-v1" : "timed-auto-draft-v1";
+  var AUTO_REPORT_KEY = "";
   var readingDraft;
-  try { readingDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (error) { readingDraft = null; }
-  if (!readingDraft || !readingDraft.selections || typeof readingDraft.selections !== "object") {
-    readingDraft = { startedAt: new Date().toISOString(), selections: {} };
+  var trainer = null;
+
+  /* Each mode keeps its own answers and code. */
+  function loadDraft() {
+    DRAFT_KEY = "timed-" + (mode === "timed" ? "practice" : mode) + "-reading-draft-v1";
+    AUTO_REPORT_KEY = mode === "timed" ? "timed-auto-draft-v1" : "timed-" + mode + "-draft-v1";
+    try { readingDraft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch (error) { readingDraft = null; }
+    if (!readingDraft || !readingDraft.selections || typeof readingDraft.selections !== "object") {
+      readingDraft = { startedAt: new Date().toISOString(), selections: {} };
+    }
+    if (!readingDraft.codes || typeof readingDraft.codes !== "object") readingDraft.codes = {};
+    if (!readingDraft.runs || typeof readingDraft.runs !== "object") readingDraft.runs = {};
+    if (!readingDraft.testFiles || typeof readingDraft.testFiles !== "object") readingDraft.testFiles = {};
+    if (imagine && trainer) {
+      var old = trainer.oldCodes();
+      Object.keys(old).forEach(function (id) {
+        if (typeof old[id] === "string" && old[id].trim() !== "" &&
+            !Object.prototype.hasOwnProperty.call(readingDraft.codes, id)) {
+          readingDraft.codes[id] = old[id];
+        }
+      });
+    }
   }
-  if (!readingDraft.codes || typeof readingDraft.codes !== "object") readingDraft.codes = {};
-  if (!readingDraft.runs || typeof readingDraft.runs !== "object") readingDraft.runs = {};
-  if (!readingDraft.testFiles || typeof readingDraft.testFiles !== "object") readingDraft.testFiles = {};
+  if (root.ReadingLab && root.ReadingLab.createTrainer) {
+    trainer = root.ReadingLab.createTrainer({
+      host: document.getElementById("trainer"),
+      statement: function () { return statement; },
+      shell: function (task) { return shellOf(task); },
+      getCode: function (task) {
+        return Object.prototype.hasOwnProperty.call(readingDraft.codes, task.id) ? readingDraft.codes[task.id] : shellOf(task);
+      },
+      setCode: function (task, code) {
+        if (pick.disabled) return false;
+        readingDraft.codes[task.id] = code;
+        delete readingDraft.runs[task.id];
+        saveDraft();
+        activateWorkspaceTab("sol");
+        showShell(task);
+        results.textContent = "";
+        codeBox.focus();
+        if (codeBox.scrollIntoView) codeBox.scrollIntoView({ block: "center" });
+        return true;
+      },
+      onProgress: function () {
+        var currentId = pick.value;
+        fillPicker();
+        if (currentId) pick.value = currentId;
+      },
+      onFocus: function () {
+        if (statementCollapsed) {
+          statementCollapsed = false;
+          statementUserSet = true;
+          applyStatementCollapse();
+        }
+      }
+    });
+  }
+  loadDraft();
   var fileListEl = document.getElementById("fileList");
   var addTestFileBtn = document.getElementById("addTestFileBtn");
   var editorTabsEl = document.getElementById("editorTabs");
@@ -274,7 +347,8 @@
       seen[name].forEach(function (task) {
         var option = document.createElement("option");
         option.value = task.id;
-        option.textContent = statementTitle(task) + (runnable(task) ? "" : statementChrome().skipped);
+        option.textContent = (imagine && trainer && trainer.isDone(task) ? "✓ " : "") +
+          statementTitle(task) + (runnable(task) ? "" : statementChrome().skipped);
         group.appendChild(option);
       });
       pick.appendChild(group);
@@ -286,19 +360,34 @@
     var sel = document.getElementById("statementLangPick");
     if (!sel) return;
     if (slot) slot.hidden = false;
-    sel.value = statementLang === "ja" ? "ja" : "en";
+    var peekOption = sel.querySelector('option[value="en-peek"]');
+    if (imagine && !peekOption) {
+      peekOption = document.createElement("option");
+      peekOption.value = "en-peek";
+      peekOption.textContent = "English＋訳";
+      peekOption.title = "英語の問題文。1文ごとに日本語訳を開けます";
+      sel.insertBefore(peekOption, sel.firstChild);
+    } else if (!imagine && peekOption) {
+      sel.removeChild(peekOption);
+    }
+    var sizer = slot && slot.querySelector(".lang-sizer");
+    if (sizer) sizer.textContent = imagine ? "English＋訳＋▾▾" : "結果を分析";
+    sel.value = statementLang === "ja" ? "ja" : (imagine && peekOn ? "en-peek" : "en");
     sel.disabled = !!(pick && pick.disabled);
   }
 
-  function setStatementLang(lang) {
-    if (lang !== "en" && lang !== "ja") return;
+  function setStatementLang(value) {
+    if (value !== "en" && value !== "ja" && !(imagine && value === "en-peek")) return;
     if (pick && pick.disabled) return;
-    if (statementLang === lang) {
+    var lang = value === "ja" ? "ja" : "en";
+    var peek = value === "en-peek";
+    if (statementLang === lang && peekOn === peek) {
       updateLangButtons();
       return;
     }
     statementLang = lang;
-    try { sessionStorage.setItem(LANG_STORE, lang); } catch (error) { /* The statement still switches. */ }
+    peekOn = peek;
+    try { sessionStorage.setItem(LANG_STORE, value); } catch (error) { /* The statement still switches. */ }
     var currentId = pick ? pick.value : "";
     fillPicker();
     if (pick && currentId) pick.value = currentId;
@@ -528,8 +617,21 @@
     statement.appendChild(el("p", "muted", chrome.limit(task.minutes)));
     var body = el("div", "stmt-body");
     body.id = "stmtBody";
+    var isEn = statementLang === "en" && !!englishPack(task);
+    function stmtLine(tag, item) {
+      var node = el(tag, "stmt-line");
+      if (item && item.id) node.setAttribute("data-sid", item.id);
+      if (imagine && trainer) trainer.fillSentence(node, task, item, isEn, peekOn);
+      else node.textContent = assumptionText(item);
+      return node;
+    }
+    if (imagine && isEn) {
+      body.appendChild(el("p", "muted peek-stat", peekOn
+        ? "詰まった文だけ「訳」で確認します。点線の語は解法のシグナルです。"
+        : "本番想定：訳なしで、英語の原文から要件とコードを連想します。"));
+    }
     (pack.sentences || []).forEach(function (sentence) {
-      body.appendChild(el("p", "stmt-line", sentence.text));
+      body.appendChild(stmtLine("p", sentence));
     });
     body.appendChild(el("h2", null, chrome.fn));
     body.appendChild(el("pre", null, task.signature || ""));
@@ -539,9 +641,13 @@
       body.appendChild(el("h2", null, chrome.assume));
       var list = document.createElement("ul");
       pack.assumptions.forEach(function (item) {
-        list.appendChild(el("li", "stmt-line", assumptionText(item)));
+        list.appendChild(stmtLine("li", item));
       });
       body.appendChild(list);
+    }
+    if (imagine && trainer) {
+      var glossary = trainer.glossaryNode();
+      if (glossary) body.appendChild(glossary);
     }
     statement.appendChild(body);
     applyStatementCollapse();
@@ -554,33 +660,19 @@
     renderReadingQuestions(task);
   }
 
+  /* The same reading questions serve two modes: an exam sheet graded on submit in the
+     timed mode, and step-by-step training with instant grading in the imagine mode. */
   function renderReadingQuestions(task) {
-    readingQuestions.textContent = "";
-    var chosen = readingDraft.selections[task.id] || {};
-    if (!(task.reading || []).length) {
-      readingQuestions.appendChild(el("p", "muted", "この問題には選択問題がありません。"));
+    if (imagine) {
+      readingQuestions.textContent = "";
+      if (trainer) trainer.show(task);
       return;
     }
-    (task.reading || []).forEach(function (question, index) {
-      var field = el("fieldset", "reading-question");
-      field.appendChild(el("legend", null, (index + 1) + ". " + question.prompt));
-      question.choices.forEach(function (choice) {
-        var label = el("label", "reading-choice");
-        var input = document.createElement("input");
-        input.type = "radio";
-        input.name = "reading-" + index;
-        input.value = choice.id;
-        input.checked = chosen[question.id] === choice.id;
-        input.addEventListener("change", function () {
-          if (!readingDraft.selections[task.id]) readingDraft.selections[task.id] = {};
-          readingDraft.selections[task.id][question.id] = choice.id;
-          saveDraft();
-        });
-        label.appendChild(input);
-        label.appendChild(el("span", null, choice.text));
-        field.appendChild(label);
-      });
-      readingQuestions.appendChild(field);
+    if (trainer) trainer.clear();
+    root.ReadingLab.renderExamQuestions(readingQuestions, task, readingDraft.selections[task.id], function (questionId, choiceId) {
+      if (!readingDraft.selections[task.id]) readingDraft.selections[task.id] = {};
+      readingDraft.selections[task.id][questionId] = choiceId;
+      saveDraft();
     });
   }
 
@@ -604,6 +696,8 @@
     if (resetTestFileBtn) resetTestFileBtn.disabled = busy;
     if (runCustomBtn) runCustomBtn.disabled = busy;
     document.getElementById("runLook").disabled = busy;
+    var modeSel = document.getElementById("modePick");
+    if (modeSel) modeSel.disabled = busy;
     paintPatterns();
   }
 
@@ -1265,9 +1359,13 @@
           activateWorkspaceTab(tabId);
         });
         editorTabsEl.appendChild(tabBtn);
-        if (isSelected && tabBtn.scrollIntoView) {
+        if (isSelected) {
+          /* Scroll only the tab strip sideways. scrollIntoView would also move the page. */
           window.requestAnimationFrame(function () {
-            try { tabBtn.scrollIntoView({ block: "nearest", inline: "nearest" }); } catch (e) { /* ignore */ }
+            var strip = editorTabsEl.getBoundingClientRect();
+            var box = tabBtn.getBoundingClientRect();
+            if (box.left < strip.left) editorTabsEl.scrollLeft -= strip.left - box.left;
+            else if (box.right > strip.right) editorTabsEl.scrollLeft += box.right - strip.right;
           });
         }
       });
@@ -2083,6 +2181,7 @@
   pick.addEventListener("change", function () {
     if (pick.disabled) return;
     var task = taskById(pick.value);
+    noteAddress();
     renderStatement(task);
     ensureTaskTestState(task);
     renderWorkspaceTabs(task);
@@ -2371,10 +2470,6 @@
   if (phoneQuery.addEventListener) phoneQuery.addEventListener("change", onPhoneStatementChange);
   else if (phoneQuery.addListener) phoneQuery.addListener(onPhoneStatementChange);
 
-  if (rehearsal) {
-    var readingSection = document.getElementById("readingSection");
-    if (readingSection) readingSection.hidden = true;
-  }
   var patternPick = document.getElementById("patternPick");
   if (patternPick) {
     patternPick.addEventListener("change", function () {
@@ -2387,22 +2482,85 @@
       setStatementLang(langPick.value);
     });
   }
-  var modePick = document.getElementById("modePick");
-  if (modePick) {
-    var currentMode = rehearsal ? "rehearsal" : "timed";
-    modePick.value = currentMode;
-    modePick.addEventListener("change", function () {
-      var next = modePick.value;
-      if (next === currentMode) return;
-      var taskQuery = pick && pick.value ? "task=" + encodeURIComponent(pick.value) : "";
-      var url = "./timed-auto.html" + (taskQuery ? "?" + taskQuery : "");
-      if (next === "imagine") url = "./reading-lab.html" + (taskQuery ? "?" + taskQuery : "");
-      else if (next === "rehearsal") url = "./timed-auto.html?mode=rehearsal";
-      root.location.href = url;
-    });
-    // Coming back with the browser's back button must show this page's own mode again.
-    root.addEventListener("pageshow", function () { modePick.value = currentMode; });
+
+  /* Keeps the address in step with the mode and the task, so a reload shows the same thing. */
+  function noteAddress() {
+    try {
+      var query = "?mode=" + mode + (!rehearsal && pick.value ? "&task=" + encodeURIComponent(pick.value) : "");
+      root.history.replaceState(null, "", root.location.pathname + query);
+    } catch (error) { /* The address bar keeps the old state; the page itself has switched. */ }
   }
+
+  /* Shows the parts of the page that belong to the current mode. */
+  function paintMode() {
+    document.body.setAttribute("data-mode", mode);
+    var app = document.getElementById("app");
+    if (app) app.classList.toggle("is-imagine", imagine);
+    var trainerHost = document.getElementById("trainer");
+    if (trainerHost) trainerHost.hidden = !imagine;
+    var readingSection = document.getElementById("readingSection");
+    if (readingSection) readingSection.hidden = mode !== "timed";
+    var modePick = document.getElementById("modePick");
+    if (modePick) {
+      modePick.value = mode;
+      modePick.disabled = !!pick.disabled;
+    }
+  }
+
+  function showTask(task) {
+    if (!task) {
+      renderGutter({}, 0);
+      return;
+    }
+    pick.value = task.id;
+    renderStatement(task);
+    ensureTaskTestState(task);
+    renderWorkspaceTabs(task);
+    showShell(task);
+  }
+
+  /* Switches the mode in place, like the language select. The task on screen is kept
+     when the new mode also has it. */
+  function setMode(next) {
+    if (!MODE_TITLES[next] || next === mode || pick.disabled) {
+      paintMode();
+      return;
+    }
+    if (examDeadline !== null &&
+        !window.confirm("全体タイマーが動いています。モードを切り替えると、タイマーは 200:00 に戻ります。切り替えますか？")) {
+      paintMode();
+      return;
+    }
+    var keepId = pick.value;
+    examReset.click();
+    showSubmitStatus("");
+    sessionReport = null;
+    records = [];
+    renderSummary();
+    mode = next;
+    loadModeBasics();
+    loadDraft();
+    paintMode();
+    paintPatterns();
+    fillPicker();
+    var task = tasks[0];
+    var same = keepId ? taskById(keepId) : null;
+    if (!rehearsal && same && same.id === keepId) task = same;
+    if (task) {
+      pick.value = task.id;
+      pick.dispatchEvent(new Event("change"));
+    }
+    noteAddress();
+  }
+
+  var modePickEl = document.getElementById("modePick");
+  if (modePickEl) {
+    modePickEl.addEventListener("change", function () {
+      setMode(modePickEl.value);
+    });
+  }
+
+  paintMode();
   paintPatterns();
   fillPicker();
   showVars([]);
@@ -2412,19 +2570,9 @@
       var requestedId = new URLSearchParams(root.location.search).get("task");
       if (requestedId) {
         var matched = taskById(requestedId);
-        if (matched && matched.id === requestedId) {
-          initialTask = matched;
-          if (pick) pick.value = matched.id;
-        }
+        if (matched && matched.id === requestedId) initialTask = matched;
       }
     } catch (error) { /* Keep default first task. */ }
   }
-  if (initialTask) {
-    renderStatement(initialTask);
-    ensureTaskTestState(initialTask);
-    renderWorkspaceTabs(initialTask);
-    showShell(initialTask);
-  } else {
-    renderGutter({}, 0);
-  }
+  showTask(initialTask);
 })(typeof globalThis !== "undefined" ? globalThis : window);

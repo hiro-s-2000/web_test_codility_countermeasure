@@ -143,8 +143,12 @@
 <body>
   <header>
     <a class="nav" href="./index.html">ポータルへ戻る</a>
-    <a class="nav" href="./timed-auto.html?mode=rehearsal">本番前試験練習</a>
-    <a class="nav" href="./timed-auto.html">制限時間で解く</a>
+    <select class="nav" id="modePick" aria-label="練習モードを開く">
+      <option value="" selected>練習モード</option>
+      <option value="imagine">コード連想トレ</option>
+      <option value="rehearsal">本番前試験練習</option>
+      <option value="timed">制限時間で解く</option>
+    </select>
   </header>
   <main>
     <p class="kicker">結果レポート</p>
@@ -183,9 +187,9 @@
   </main>
   <script src="./js/reading-lab-extra.js"></script>
   <script src="./js/reading-lab-answers.js"></script>
-  <script>window.SKIP_READING_LAB_BOOT = true;</script>
   <script src="./js/reading-lab.js"></script>
   <script src="./js/result-review.js"></script>
+  <script src="./js/mode-pick.js"></script>
   <script src="./js/pull-refresh.js"></script>
 </body>
 </html>
