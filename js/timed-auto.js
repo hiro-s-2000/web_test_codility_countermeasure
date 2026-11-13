@@ -504,11 +504,6 @@
   }
 
   function renderStatement(task) {
-    var imagineNav = document.getElementById("imagineNav");
-    if (imagineNav) {
-      imagineNav.hidden = !!rehearsal;
-      if (task && task.id) imagineNav.href = "./reading-lab.html?task=" + encodeURIComponent(task.id);
-    }
     var pack = packOf(task);
     var nextId = task && task.id ? task.id : "";
     if (nextId !== statementTaskId) {
@@ -2391,6 +2386,22 @@
     langPick.addEventListener("change", function () {
       setStatementLang(langPick.value);
     });
+  }
+  var modePick = document.getElementById("modePick");
+  if (modePick) {
+    var currentMode = rehearsal ? "rehearsal" : "timed";
+    modePick.value = currentMode;
+    modePick.addEventListener("change", function () {
+      var next = modePick.value;
+      if (next === currentMode) return;
+      var taskQuery = pick && pick.value ? "task=" + encodeURIComponent(pick.value) : "";
+      var url = "./timed-auto.html" + (taskQuery ? "?" + taskQuery : "");
+      if (next === "imagine") url = "./reading-lab.html" + (taskQuery ? "?" + taskQuery : "");
+      else if (next === "rehearsal") url = "./timed-auto.html?mode=rehearsal";
+      root.location.href = url;
+    });
+    // Coming back with the browser's back button must show this page's own mode again.
+    root.addEventListener("pageshow", function () { modePick.value = currentMode; });
   }
   paintPatterns();
   fillPicker();

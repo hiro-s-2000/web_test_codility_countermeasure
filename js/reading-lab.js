@@ -727,7 +727,7 @@
     var langModePick = document.getElementById("langModePick");
     var unlockBtn = document.getElementById("unlockBtn");
     var themeBtn = document.getElementById("themeBtn");
-    var toTimedLink = document.getElementById("toTimedLink");
+    var modePick = document.getElementById("modePick");
 
     function persist() {
       saveState(state);
@@ -773,9 +773,6 @@
       if (unlockBtn) {
         unlockBtn.textContent = state.freeUnlock ? "すぐ書く: ON" : "すぐ書く: OFF";
         unlockBtn.classList.toggle("is-on", !!state.freeUnlock);
-      }
-      if (toTimedLink) {
-        toTimedLink.href = "./timed-auto.html?task=" + encodeURIComponent(current.id);
       }
       themeBtn.textContent = state.theme === "dark" ? "明るい画面" : "暗い画面";
     }
@@ -1606,6 +1603,18 @@
       persist();
       render();
     });
+    if (modePick) {
+      modePick.value = "imagine";
+      modePick.addEventListener("change", function () {
+        if (modePick.value === "rehearsal") {
+          root.location.href = "./timed-auto.html?mode=rehearsal";
+        } else if (modePick.value === "timed") {
+          root.location.href = "./timed-auto.html?task=" + encodeURIComponent(state.taskId || "");
+        }
+      });
+      // Coming back with the browser's back button must show this page's own mode again.
+      root.addEventListener("pageshow", function () { modePick.value = "imagine"; });
+    }
     if (langModePick) {
       langModePick.addEventListener("change", function () {
         state.langMode = langModePick.value;
