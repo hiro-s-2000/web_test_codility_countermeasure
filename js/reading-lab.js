@@ -611,6 +611,8 @@
     var commentBlock = lines.map(function (l) { return "    " + l; }).join("\n");
     var brace = base.indexOf("{");
     if (brace === -1) return lines.join("\n") + "\n" + base;
+    /* A bug-fix task already has a body: the notes go above it and the code stays. */
+    if (base.slice(brace).replace(/[\s{}]/g, "")) return base.slice(0, brace + 1) + "\n" + commentBlock + base.slice(brace + 1);
     return base.slice(0, brace + 1) + "\n" + commentBlock + "\n    \n}\n";
   }
 
@@ -1073,12 +1075,12 @@
       var putBlueprint = el("button", "run-btn", "コメント外枠(//)をエディタに入れる");
       putBlueprint.type = "button";
       putBlueprint.addEventListener("click", function () {
-        putInEditor(t, buildCommentStarter(t, shellFor(t)), "いまエディタにあるコードを、コメント外枠だけの状態に置き換えますか？");
+        putInEditor(t, buildCommentStarter(t, shellFor(t)), "いまエディタにあるコードを、コメント外枠を入れた最初の状態に置き換えますか？");
       });
-      var reset = el("button", "text-btn", "署名だけに戻す");
+      var reset = el("button", "text-btn", "最初の状態に戻す");
       reset.type = "button";
       reset.addEventListener("click", function () {
-        if (!window.confirm("この問題のエディタを、署名だけの状態に戻します。")) return;
+        if (!window.confirm("この問題のエディタを、最初の状態に戻します。")) return;
         opts.setCode(t, shellFor(t));
       });
       bar.appendChild(putBlueprint);

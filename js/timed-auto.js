@@ -6,10 +6,12 @@
   /* One page, three modes: "imagine" (reading and code imagination), "rehearsal"
      (a five-task paper) and "timed" (any task against the clock). */
   var MODE_TITLES = { imagine: "コード連想トレ", rehearsal: "本番前試験練習", timed: "制限時間で解く" };
+  var MODE_STORE = "practice-mode-v1";
   var mode = "timed";
   try {
-    var askedMode = new URLSearchParams(root.location.search).get("mode");
-    if (askedMode === "rehearsal" || askedMode === "imagine") mode = askedMode;
+    /* Without a mode in the address, the page opens in the mode used last. */
+    var askedMode = new URLSearchParams(root.location.search).get("mode") || localStorage.getItem(MODE_STORE);
+    if (MODE_TITLES[askedMode]) mode = askedMode;
   } catch (error) {
     mode = "timed";
   }
@@ -66,6 +68,7 @@
       tasks = taskListFor(patternIndex);
     }
     document.title = MODE_TITLES[mode];
+    try { localStorage.setItem(MODE_STORE, mode); } catch (error) { /* The mode still works for this visit. */ }
   }
   loadModeBasics();
   var answers = root.LAB_ANSWERS || {};
@@ -175,10 +178,8 @@
     trainer = root.ReadingLab.createTrainer({
       host: document.getElementById("trainer"),
       statement: function () { return statement; },
-      shell: function (task) { return shellOf(task); },
-      getCode: function (task) {
-        return Object.prototype.hasOwnProperty.call(readingDraft.codes, task.id) ? readingDraft.codes[task.id] : shellOf(task);
-      },
+      shell: function (task) { return starterOf(task); },
+      getCode: function (task) { return codeOf(task); },
       setCode: function (task, code) {
         if (pick.disabled) return false;
         readingDraft.codes[task.id] = code;
@@ -1710,6 +1711,25 @@
     return "class " + sig + " {\n    \n}\n";
   }
 
+  /* What the editor shows before the user types. Bug-fix tasks come with the code to
+     repair; every other task starts from the empty shell. */
+  function starterOf(task) {
+    var starter = task.starter || "";
+    var openAt = starter.indexOf("{");
+    if (openAt >= 0 && starter.slice(openAt).replace(/[\s{}]/g, "")) return starter;
+    return shellOf(task);
+  }
+
+  /* The saved code of a task. An empty shell saved before the given code existed does
+     not hide the code to repair. */
+  function codeOf(task) {
+    var given = starterOf(task);
+    if (!Object.prototype.hasOwnProperty.call(readingDraft.codes, task.id)) return given;
+    var saved = readingDraft.codes[task.id];
+    if (given !== shellOf(task) && (saved.trim() === "" || saved === shellOf(task))) return given;
+    return saved;
+  }
+
   function frameOf(task, source) {
     var shell = shellOf(task);
     if (!source || !shell) {
@@ -1768,8 +1788,7 @@
   }
 
   function showShell(task) {
-    var shell = Object.prototype.hasOwnProperty.call(readingDraft.codes, task.id)
-      ? readingDraft.codes[task.id] : shellOf(task);
+    var shell = codeOf(task);
     codeBox.value = shell;
     codeBox.scrollTop = 0;
     codeBox.scrollLeft = 0;
