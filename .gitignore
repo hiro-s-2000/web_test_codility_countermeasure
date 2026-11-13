@@ -8,3 +8,6 @@ out/
 *.jar
 .env
 .env.*
+local.properties
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
